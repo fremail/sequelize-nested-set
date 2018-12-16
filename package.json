@@ -1,0 +1,33 @@
+{
+  "name": "sequelize-nested-set",
+  "version": "0.0.1",
+  "description": "Library to store and manage nested set trees using Sequelize",
+  "main": "index.js",
+  "dependencies": {
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fremail/sequelize-nested-set.git"
+  },
+  "keywords": [
+    "Sequelize",
+    "nested",
+    "set",
+    "node",
+    "JS",
+    "tree"
+  ],
+  "author": {
+    "name": "Anton Demushkin",
+    "email": "fremail@yandex.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fremail/sequelize-nested-set/issues"
+  },
+  "homepage": "https://github.com/fremail/sequelize-nested-set#readme"
+}
