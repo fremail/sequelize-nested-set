@@ -21,10 +21,7 @@
     "JS",
     "tree"
   ],
-  "author": {
-    "name": "Anton Demushkin",
-    "email": "fremail@yandex.com"
-  },
+  "author": "Anton Demushkin <fremail@yandex.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/fremail/sequelize-nested-set/issues"
