@@ -38,20 +38,12 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
     const Model = sequelize.define(modelName, attributes, options);
 
-    // // Class Method - helpers
-    // Model.associate = function (models) {
-    //     ...associate the models
-    // };
-    //
-    // // Instance Method - manipulating one row
-    // Model.prototype.someMethod = function () {..}
-
     /**
      * Create root node from record or create a new one
      * @param {Model} record
      * @return {Promise<Model>}
      */
-    Model.createRoot = async (record = null) => {
+    Model.createRoot = async function (record = null) {
         if (nsOptions.hasManyRoots) {
             if (record && record.id && !record.rootId) {
                 record.rootId = record.id;
@@ -82,7 +74,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {int} rootId
      * @return {Promise<Model|boolean>}
      */
-    Model.fetchRoot = async (rootId = 1) => {
+    Model.fetchRoot = async function (rootId = 1) {
         const root = await Model.findOne({
             where: {
                 lft: 1,
@@ -99,7 +91,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {int} rootId
      * @return {Promise<Array<Model>|boolean>}
      */
-    Model.fetchTree = async (depth = 0, rootId = 1) => {
+    Model.fetchTree = async function (depth = 0, rootId = 1) {
         const where = {
             lft: {
                 [Op.gte]: 1,
@@ -126,7 +118,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Fetch all root nodes
      * @return {Promise<Array<Model>|boolean>}
      */
-    Model.fetchRoots = async () => {
+    Model.fetchRoots = async function () {
         const roots = await Model.findAll({
             where: {
                 lft: 1,
@@ -140,7 +132,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Test if the node has previous sibling
      * @returns {Promise<boolean>}
      */
-    Model.prototype.hasPrevSibling = async () => {
+    Model.prototype.hasPrevSibling = async function () {
         return this.isValidNode(await this.getPrevSibling());
     };
 
@@ -148,7 +140,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Test if the node has next sibling
      * @returns {Promise<boolean>}
      */
-    Model.prototype.hasNextSibling = async () => {
+    Model.prototype.hasNextSibling = async function () {
         return this.isValidNode(await this.getNextSibling());
     };
 
@@ -172,7 +164,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Get previous sibling of the node
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getPrevSibling = async () => {
+    Model.prototype.getPrevSibling = async function () {
         const sibling = await this.findOne({
             where: {
                 rgt: this.lft - 1,
@@ -187,7 +179,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Get next sibling of the node
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getNextSibling = async () => {
+    Model.prototype.getNextSibling = async function () {
         const sibling = await this.findOne({
             where: {
                 lft: this.rgt + 1,
@@ -203,7 +195,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {boolean} withCurrentNode
      * @returns {Promise<*>}
      */
-    Model.prototype.getSiblings = async (withCurrentNode = false) => {
+    Model.prototype.getSiblings = async function (withCurrentNode = false) {
         const parent = await this.getParent();
         if (!parent) {
             const children = await parent.getChildren();
@@ -226,7 +218,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Get first child of the node
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getFirstChild = async () => {
+    Model.prototype.getFirstChild = async function () {
         const child = await this.findOne({
             where: {
                 lft: this.lft + 1,
@@ -241,7 +233,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Get last child of the node
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getLastChild = async () => {
+    Model.prototype.getLastChild = async function () {
         const child = await this.findOne({
             where: {
                 rgt: this.rgt - 1,
@@ -256,7 +248,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Get children for the node
      * @returns {Promise<Array<Model>|boolean>}
      */
-    Model.prototype.getChildren = async () => {
+    Model.prototype.getChildren = async function () {
         return await this.getDescendants(1);
     };
 
@@ -265,7 +257,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {int} depth 0 to get all descendants
      * @returns {Promise<Array<Model>|boolean>}
      */
-    Model.prototype.getDescendants = async (depth = 0) => {
+    Model.prototype.getDescendants = async function (depth = 0) {
         let descendants;
         if (depth === 0) {
             descendants = await this.findAll({
@@ -293,7 +285,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Get parent
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getParent = async () => {
+    Model.prototype.getParent = async function () {
         if (this.isRoot()) {
             return false;
         }
@@ -323,7 +315,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {int} depth use 0 to get all ancestors
      * @returns {Promise<Array<Model>|boolean>}
      */
-    Model.prototype.getAncestors = async (depth = 0) => {
+    Model.prototype.getAncestors = async function (depth = 0) {
         if (this.isRoot()) {
             return false;
         }
@@ -366,7 +358,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Get number of children
      * @returns {Promise<number>}
      */
-    Model.prototype.getNumberChildren = async () => {
+    Model.prototype.getNumberChildren = async function () {
         const children = await this.getChildren();
         return children === false ? 0 : children.length;
     };
@@ -385,7 +377,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Transaction} transaction
      * @returns {Promise}
      */
-    Model.prototype.insertAsParentOf = async (destNode, transaction = null) => {
+    Model.prototype.insertAsParentOf = async function (destNode, transaction = null) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -401,7 +393,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newRootId = destNode.rootId;
         const newLevel = destNode.level;
 
-        const lambda = async (transaction) => {
+        const lambda = async function (transaction) {
             // make space for new node
             await this.shiftRlValues(destNode.rgt + 1, 2, newRootId, transaction);
 
@@ -441,7 +433,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Transaction} transaction
      * @returns {Promise}
      */
-    Model.prototype.insertAsPrevSiblingOf = async (destNode, transaction = null) => {
+    Model.prototype.insertAsPrevSiblingOf = async function (destNode, transaction = null) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -473,7 +465,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Transaction} transaction
      * @returns {Promise}
      */
-    Model.prototype.insertAsNextSiblingOf = async (destNode, transaction = null) => {
+    Model.prototype.insertAsNextSiblingOf = async function (destNode, transaction = null) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -505,7 +497,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Transaction} transaction
      * @returns {Promise}
      */
-    Model.prototype.insertAsFirstChildOf = async (destNode, transaction = null) => {
+    Model.prototype.insertAsFirstChildOf = async function (destNode, transaction = null) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -537,7 +529,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Transaction} transaction
      * @returns {Promise}
      */
-    Model.prototype.insertAsLastChildOf = async (destNode, transaction = null) => {
+    Model.prototype.insertAsLastChildOf = async function (destNode, transaction = null) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -571,7 +563,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise}
      */
     // private
-    Model.prototype.moveBetweenTrees = async (destNode, newLft, moveType) => {
+    Model.prototype.moveBetweenTrees = async function (destNode, newLft, moveType) {
         await sequelize.transaction(async (transaction) => {
             const newRootId = destNode.rootId;
             const oldRootId = this.rootId;
@@ -645,7 +637,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} destNode
      * @returns {Promise}
      */
-    Model.prototype.moveAsPrevSiblingOf = async (destNode) => {
+    Model.prototype.moveAsPrevSiblingOf = async function (destNode) {
         if (destNode === this || this.isAncestorOf(destNode) || this.isEqualTo(destNode)) {
             throw 'Cannot move node as previous sibling of itself';
         }
@@ -666,7 +658,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} destNode
      * @returns {Promise}
      */
-    Model.prototype.moveAsNextSiblingOf = async (destNode) => {
+    Model.prototype.moveAsNextSiblingOf = async function (destNode) {
         if (destNode === this || this.isAncestorOf(destNode) || this.isEqualTo(destNode)) {
             throw 'Cannot move node as next sibling of itself';
         }
@@ -687,7 +679,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} destNode
      * @returns {Promise}
      */
-    Model.prototype.moveAsFirstChildOf = async (destNode) => {
+    Model.prototype.moveAsFirstChildOf = async function (destNode) {
         if (destNode === this || this.isAncestorOf(destNode) || this.isEqualTo(destNode)) {
             throw 'Cannot move node as first child of itself or into a descendant';
         }
@@ -708,7 +700,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} destNode
      * @returns {Promise}
      */
-    Model.prototype.moveAsLastChildOf = async (destNode) => {
+    Model.prototype.moveAsLastChildOf = async function (destNode) {
         if (destNode === this || this.isAncestorOf(destNode) || this.isEqualTo(destNode)) {
             throw 'Cannot move node as last child of itself or into a descendant';
         }
@@ -729,7 +721,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {int} newRootId
      * @returns {Promise}
      */
-    Model.prototype.makeRoot = async (newRootId) => {
+    Model.prototype.makeRoot = async function (newRootId) {
         if (this.isRoot() || !nsOptions.hasManyRoots) {
             throw 'Cannot make the node root because it is already root or you have disabled hasManyRoots';
         }
@@ -780,7 +772,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} node
      * @returns {Promise}
      */
-    Model.prototype.addChild = async (node) => {
+    Model.prototype.addChild = async function (node) {
         await node.insertAsLastChildOf(this);
     };
 
@@ -862,7 +854,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Delete the node with all its children
      * @returns {Promise<void>}
      */
-    Model.prototype.delete = async () => {
+    Model.prototype.delete = async function () {
         await sequelize.transaction(async (transaction) => {
             const rootId = this.rootId;
 
@@ -894,7 +886,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise}
      */
     // private
-    Model.prototype.insertNode = async (destLeft = 0, destRight = 0, destRoot = 1, transaction = null) => {
+    Model.prototype.insertNode = async function (destLeft = 0, destRight = 0, destRoot = 1, transaction = null) {
         this.lft = destLeft;
         this.rgt = destRight;
         this.rootId = destRoot;
@@ -910,7 +902,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise}
      */
     // private
-    Model.prototype.updateNode = async (destLeft, levelDiff) => {
+    Model.prototype.updateNode = async function (destLeft, levelDiff) {
         let left = this.lft;
         let right = this.rgt;
         const rootId = this.rootId;
@@ -959,7 +951,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise}
      */
     // private
-    Model.prototype.shiftRlValues = async (first, delta, rootId = 1, transaction = null) => {
+    Model.prototype.shiftRlValues = async function (first, delta, rootId = 1, transaction = null) {
         const lambda = async (transaction) => {
             const promise1 = this.increment('lft', {
                 by: delta,
@@ -1004,7 +996,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise}
      */
     // private
-    Model.prototype.shiftRlRange = async (first, last, delta, rootId = 1, transaction = null) => {
+    Model.prototype.shiftRlRange = async function (first, last, delta, rootId = 1, transaction = null) {
         const lambda = async (transaction) => {
             const promise1 = this.increment('lft', {
                 by: delta,
