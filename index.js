@@ -262,6 +262,12 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         if (depth === 0) {
             descendants = await this.findAll({
                 where: {
+                    lft: {
+                        [Op.gt]: this.lft,
+                    },
+                    rgt: {
+                        [Op.lt]: this.rgt,
+                    },
                     level: {
                         [Op.gte]: this.level + 1,
                     },
@@ -271,6 +277,12 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         } else {
             descendants = await this.findAll({
                 where: {
+                    lft: {
+                        [Op.gt]: this.lft,
+                    },
+                    rgt: {
+                        [Op.lt]: this.rgt,
+                    },
                     level: {
                         [Op.between]: [this.level + 1, this.level + depth],
                     },
