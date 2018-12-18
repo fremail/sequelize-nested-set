@@ -12,13 +12,11 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         lft: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            unique: true,
             defaultValue: 1
         },
         rgt: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            unique: true,
             defaultValue: 2
         },
         level: {
