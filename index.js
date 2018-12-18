@@ -3,6 +3,8 @@ const Sequelize = require('sequelize');
 module.exports = function (sequelize, DataTypes, modelName, attributes = {}, options = {}) {
     const Op = Sequelize.Op;
     const nsOptions = {
+        lftColumnName: options.lftColumnName || 'lft',
+        rgtColumnName: options.rgtColumnName || 'rgt',
         levelColumnName: options.levelColumnName || 'level',
         hasManyRoots: options.hasManyRoots || false,
         rootColumnName: options.rootColumnName || 'root_id',
@@ -11,11 +13,13 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     const baseAttributes = {
         lft: {
             type: DataTypes.INTEGER,
+            field: nsOptions.lftColumnName,
             allowNull: false,
             defaultValue: 1
         },
         rgt: {
             type: DataTypes.INTEGER,
+            field: nsOptions.rgtColumnName,
             allowNull: false,
             defaultValue: 2
         },
