@@ -258,6 +258,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise<Array<Model>|boolean>}
      */
     Model.prototype.getDescendants = async function (depth = 0) {
+        depth = parseInt(depth, 10);
         let descendants;
         if (depth === 0) {
             descendants = await this.findAll({
@@ -331,6 +332,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         if (this.isRoot()) {
             return false;
         }
+        depth = parseInt(depth, 10);
         let ancestors;
         if (depth === 0) {
             ancestors = await this.findAll({
