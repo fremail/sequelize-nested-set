@@ -43,9 +43,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Create root node from record or create a new one
      * @param {Model} record
+     * @param {object} options
      * @return {Promise<Model>}
      */
-    Model.createRoot = async function (record = null) {
+    Model.createRoot = async function (record = null, options = {}) {
         if (nsOptions.hasManyRoots) {
             if (record && record.id && !record.rootId) {
                 record.rootId = record.id;
@@ -59,7 +60,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         record.lft = 1;
         record.rgt = 2;
         record.level = 0;
-        await record.save();
+        await record.save(options);
 
         if (nsOptions.hasManyRoots) {
             if (!record.rootId) {
@@ -74,15 +75,14 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Fetch root node
      * @param {int} rootId
+     * @param {object} options
      * @return {Promise<Model|boolean>}
      */
-    Model.fetchRoot = async function (rootId = 1) {
-        const root = await Model.findOne({
-            where: {
-                lft: 1,
-                rootId: rootId,
-            },
-        });
+    Model.fetchRoot = async function (rootId = 1, options = {}) {
+        options.where = options.where || {};
+        options.where.lft = 1;
+        options.where.rootId = rootId;
+        const root = await Model.findOne(options);
 
         return root || false;
     };
@@ -91,59 +91,58 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Fetch tree nodes
      * @param {int} depth use 0 to fetch all
      * @param {int} rootId
+     * @param {object} options
      * @return {Promise<Array<Model>|boolean>}
      */
-    Model.fetchTree = async function (depth = 0, rootId = 1) {
-        const where = {
-            lft: {
-                [Op.gte]: 1,
-            },
-            rootId: rootId,
+    Model.fetchTree = async function (depth = 0, rootId = 1, options = {}) {
+        options.where = options.where || {};
+        options.where.lft = {
+            [Op.gte]: 1,
         };
+        options.where.rootId = rootId;
         if (depth > 0) {
-            where.level = {
+            options.where.level = {
                 [Op.between]: [0, depth],
             };
         }
+        options.order = options.order || [
+            'lft',
+        ];
 
-        const nodes = await Model.findAll({
-            where: where,
-            order: [
-                'lft',
-            ],
-        });
+        const nodes = await Model.findAll(options);
 
         return nodes || false;
     };
 
     /**
      * Fetch all root nodes
+     * @param {object} options
      * @return {Promise<Array<Model>|boolean>}
      */
-    Model.fetchRoots = async function () {
-        const roots = await Model.findAll({
-            where: {
-                lft: 1,
-            },
-        });
+    Model.fetchRoots = async function (options = {}) {
+        options.where = options.where || {};
+        options.where.lft = 1;
+        const roots = await Model.findAll(options);
 
         return roots || false;
     };
 
     /**
      * Test if the node has previous sibling
+     * @param {object} options
      * @returns {Promise<boolean>}
      */
-    Model.prototype.hasPrevSibling = async function () {
-        return this.isValidNode(await this.getPrevSibling());
+    Model.prototype.hasPrevSibling = async function (options = {}) {
+        return this.isValidNode(await this.getPrevSibling(options));
     };
 
     /**
      * Test if the node has next sibling
+     * @param {object} options
      * @returns {Promise<boolean>}
      */
-    Model.prototype.hasNextSibling = async function () {
-        return this.isValidNode(await this.getNextSibling());
+    Model.prototype.hasNextSibling = async function (options = {}) {
+        return this.isValidNode(await this.getNextSibling(options));
     };
 
     /**
@@ -164,30 +163,28 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
     /**
      * Get previous sibling of the node
+     * @param {object} options
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getPrevSibling = async function () {
-        const sibling = await this.findOne({
-            where: {
-                rgt: this.lft - 1,
-                rootId: this.rootId,
-            },
-        });
+    Model.prototype.getPrevSibling = async function (options = {}) {
+        options.where = options.where || {};
+        options.where.rgt = this.lft - 1;
+        options.where.rootId = this.rootId;
+        const sibling = await this.findOne(options);
 
         return sibling || false;
     };
 
     /**
      * Get next sibling of the node
+     * @param {object} options
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getNextSibling = async function () {
-        const sibling = await this.findOne({
-            where: {
-                lft: this.rgt + 1,
-                rootId: this.rootId,
-            },
-        });
+    Model.prototype.getNextSibling = async function (options = {}) {
+        options.where = options.where || {};
+        options.where.lft = this.rgt + 1;
+        options.where.rootId = this.rootId;
+        const sibling = await this.findOne(options);
 
         return sibling || false;
     };
@@ -195,12 +192,13 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Get siblings for the node
      * @param {boolean} withCurrentNode
+     * @param {object} options
      * @returns {Promise<*>}
      */
-    Model.prototype.getSiblings = async function (withCurrentNode = false) {
-        const parent = await this.getParent();
+    Model.prototype.getSiblings = async function (withCurrentNode = false, options = {}) {
+        const parent = await this.getParent(options);
         if (!parent) {
-            const children = await parent.getChildren();
+            const children = await parent.getChildren(options);
             if (children) {
                 if (withCurrentNode) {
                     return children;
@@ -218,109 +216,96 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
     /**
      * Get first child of the node
+     * @param {object} options
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getFirstChild = async function () {
-        const child = await this.findOne({
-            where: {
-                lft: this.lft + 1,
-                rootId: this.rootId,
-            },
-        });
+    Model.prototype.getFirstChild = async function (options = {}) {
+        options.where = options.where || {};
+        options.where.lft = this.lft + 1;
+        options.where.rootId = this.rootId;
+        const child = await this.findOne(options);
 
         return child || false;
     };
 
     /**
      * Get last child of the node
+     * @param {object} options
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getLastChild = async function () {
-        const child = await this.findOne({
-            where: {
-                rgt: this.rgt - 1,
-                rootId: this.rootId,
-            },
-        });
+    Model.prototype.getLastChild = async function (options = {}) {
+        options.where = options.where || {};
+        options.where.rgt = this.rgt - 1;
+        options.where.rootId = this.rootId;
+        const child = await this.findOne(options);
 
         return child || false;
     };
 
     /**
      * Get children for the node
+     * @param {object} options
      * @returns {Promise<Array<Model>|boolean>}
      */
-    Model.prototype.getChildren = async function () {
-        return await this.getDescendants(1);
+    Model.prototype.getChildren = async function (options = {}) {
+        return await this.getDescendants(1, options);
     };
 
     /**
      * Get descendants for the node
      * @param {int} depth 0 to get all descendants
+     * @param {object} options
      * @returns {Promise<Array<Model>|boolean>}
      */
-    Model.prototype.getDescendants = async function (depth = 0) {
+    Model.prototype.getDescendants = async function (depth = 0, options = {}) {
         depth = parseInt(depth, 10);
-        let descendants;
+        options.where = options.where || {};
+        options.where.lft = {
+            [Op.gt]: this.lft,
+        };
+        options.where.rgt = {
+            [Op.lt]: this.rgt,
+        };
+        options.where.rootId = this.rootId;
         if (depth === 0) {
-            descendants = await this.findAll({
-                where: {
-                    lft: {
-                        [Op.gt]: this.lft,
-                    },
-                    rgt: {
-                        [Op.lt]: this.rgt,
-                    },
-                    level: {
-                        [Op.gte]: this.level + 1,
-                    },
-                    rootId: this.rootId,
-                },
-            });
+            options.where.level = {
+                [Op.gte]: this.level + 1,
+            };
         } else {
-            descendants = await this.findAll({
-                where: {
-                    lft: {
-                        [Op.gt]: this.lft,
-                    },
-                    rgt: {
-                        [Op.lt]: this.rgt,
-                    },
-                    level: {
-                        [Op.between]: [this.level + 1, this.level + depth],
-                    },
-                    rootId: this.rootId,
-                },
-            });
+            options.where.level = {
+                [Op.between]: [this.level + 1, this.level + depth],
+            };
         }
+
+        const descendants = await this.findAll(options);
+
         return descendants || false;
     };
 
     /**
      * Get parent
+     * @param {object} options
      * @returns {Promise<Model|boolean>}
      */
-    Model.prototype.getParent = async function () {
+    Model.prototype.getParent = async function (options = {}) {
         if (this.isRoot()) {
             return false;
         }
-        const parent = await this.findOne({
-            where: {
-                lft: {
-                    [Op.lt]: this.lft,
-                },
-                rgt: {
-                    [Op.gt]: this.rgt,
-                },
-                level: {
-                    [Op.gte]: this.level - 1,
-                },
-                rootId: this.rootId,
-            },
-            order: [
-                'rgt',
-            ],
-        });
+        options.where = options.where || {};
+        options.where.lft = {
+            [Op.lt]: this.lft,
+        };
+        options.where.rgt = {
+            [Op.gt]: this.rgt,
+        };
+        options.where.level = {
+            [Op.gte]: this.level - 1,
+        };
+        options.where.rootId = this.rootId;
+        options.order = options.order || [
+            'rgt',
+        ];
+        const parent = await this.findOne(options);
 
         return parent || false;
     };
@@ -328,54 +313,44 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Get ancestors for the node
      * @param {int} depth use 0 to get all ancestors
+     * @param {object} options
      * @returns {Promise<Array<Model>|boolean>}
      */
-    Model.prototype.getAncestors = async function (depth = 0) {
+    Model.prototype.getAncestors = async function (depth = 0, options = {}) {
         if (this.isRoot()) {
             return false;
         }
         depth = parseInt(depth, 10);
-        let ancestors;
+        options.where = options.where || {};
+        options.where.lft = {
+            [Op.lt]: this.lft,
+        };
+        options.where.rgt = {
+            [Op.gt]: this.rgt,
+        };
+        options.where.rootId = this.rootId;
         if (depth === 0) {
-            ancestors = await this.findAll({
-                where: {
-                    lft: {
-                        [Op.lt]: this.lft,
-                    },
-                    rgt: {
-                        [Op.gt]: this.rgt,
-                    },
-                    level: {
-                        [Op.lte]: this.level - 1,
-                    },
-                    rootId: this.rootId,
-                },
-            });
+            options.where.level = {
+                [Op.lte]: this.level - 1,
+            };
         } else {
-            ancestors = await this.findAll({
-                where: {
-                    lft: {
-                        [Op.lt]: this.lft,
-                    },
-                    rgt: {
-                        [Op.gt]: this.rgt,
-                    },
-                    level: {
-                        [Op.between]: [this.level - 1, this.level - depth],
-                    },
-                    rootId: this.rootId,
-                },
-            });
+            options.where.level = {
+                [Op.between]: [this.level - 1, this.level - depth],
+            };
         }
+
+        const ancestors = await this.findAll(options);
+
         return ancestors || false;
     };
 
     /**
      * Get number of children
+     * @param {object} options
      * @returns {Promise<number>}
      */
-    Model.prototype.getNumberChildren = async function () {
-        const children = await this.getChildren();
+    Model.prototype.getNumberChildren = async function (options = {}) {
+        const children = await this.getChildren(options);
         return children === false ? 0 : children.length;
     };
 
@@ -390,10 +365,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Insert the node as parent of destination node
      * @param {Model} destNode
-     * @param {Transaction} transaction
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.insertAsParentOf = async function (destNode, transaction = null) {
+    Model.prototype.insertAsParentOf = async function (destNode, options = {}) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -410,34 +385,33 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newLevel = destNode.level;
 
         const lambda = async function (transaction) {
+            options.where = options.where || {};
+            options.transaction = transaction;
             // make space for new node
-            await this.shiftRlValues(destNode.rgt + 1, 2, newRootId, transaction);
+            await this.shiftRlValues(destNode.rgt + 1, 2, newRootId, options);
 
             // update children
+            const incOptions = {...options};
+            incOptions.where.lft = {
+                [Op.gte]: newLft,
+            };
+            incOptions.where.rgt = {
+                [Op.lte]: newRgt,
+            };
+            incOptions.where.rootId = newRootId;
             await this.increment({
                 lft: 1,
                 rgt: 1,
                 level: 1,
-            }, {
-                where: {
-                    lft: {
-                        [Op.gte]: newLft,
-                    },
-                    rgt: {
-                        [Op.lte]: newRgt,
-                    },
-                    rootId: newRootId,
-                },
-                transaction: transaction,
-            });
+            }, options);
 
             this.level = newLevel;
-            await this.insertNode(newLft, newRgt, newRootId, transaction);
+            await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
         // run queries in the given transaction or create a new transaction
-        if (transaction) {
-            return lambda(transaction);
+        if (options.transaction) {
+            return lambda(options.transaction);
         } else {
             return sequelize.transaction(lambda);
         }
@@ -446,10 +420,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Insert the node as previous sibling of the destination node
      * @param {Model} destNode
-     * @param {Transaction} transaction
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.insertAsPrevSiblingOf = async function (destNode, transaction = null) {
+    Model.prototype.insertAsPrevSiblingOf = async function (destNode, options = {}) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -462,14 +436,15 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newRootId = destNode.rootId;
 
         const lambda = async (transaction) => {
-            await this.shiftRlValues(newLft, 2, newRootId, transaction);
+            options.transaction = transaction;
+            await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
-            await this.insertNode(newLft, newRgt, newRootId, transaction);
+            await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
         // run queries in the given transaction or create a new transaction
-        if (transaction) {
-            return lambda(transaction);
+        if (options.transaction) {
+            return lambda(options.transaction);
         } else {
             return sequelize.transaction(lambda);
         }
@@ -478,10 +453,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Insert the node as next sibling of the destination node
      * @param {Model} destNode
-     * @param {Transaction} transaction
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.insertAsNextSiblingOf = async function (destNode, transaction = null) {
+    Model.prototype.insertAsNextSiblingOf = async function (destNode, options = {}) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -494,14 +469,15 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newRootId = destNode.rootId;
 
         const lambda = async (transaction) => {
-            await this.shiftRlValues(newLft, 2, newRootId, transaction);
+            options.transaction = transaction;
+            await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
-            await this.insertNode(newLft, newRgt, newRootId, transaction);
+            await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
         // run queries in the given transaction or create a new transaction
-        if (transaction) {
-            return lambda(transaction);
+        if (options.transaction) {
+            return lambda(options.transaction);
         } else {
             return sequelize.transaction(lambda);
         }
@@ -510,10 +486,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Insert the node as first child of the destination node
      * @param {Model} destNode
-     * @param {Transaction} transaction
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.insertAsFirstChildOf = async function (destNode, transaction = null) {
+    Model.prototype.insertAsFirstChildOf = async function (destNode, options = {}) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -526,14 +502,15 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newRootId = destNode.rootId;
 
         const lambda = async (transaction) => {
-            await this.shiftRlValues(newLft, 2, newRootId, transaction);
+            options.transaction = transaction;
+            await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
-            await this.insertNode(newLft, newRgt, newRootId, transaction);
+            await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
         // run queries in the given transaction or create a new transaction
-        if (transaction) {
-            return lambda(transaction);
+        if (options.transaction) {
+            return lambda(options.transaction);
         } else {
             return sequelize.transaction(lambda);
         }
@@ -542,10 +519,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Insert the node as last child of the destination node
      * @param {Model} destNode
-     * @param {Transaction} transaction
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.insertAsLastChildOf = async function (destNode, transaction = null) {
+    Model.prototype.insertAsLastChildOf = async function (destNode, options = {}) {
         if (this.isValidNode()) {
             throw 'Cannot insert the node that has its place in the tree';
         }
@@ -558,14 +535,15 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newRootId = destNode.rootId;
 
         const lambda = async (transaction) => {
-            await this.shiftRlValues(newLft, 2, newRootId, transaction);
+            options.transaction = transaction;
+            await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
-            await this.insertNode(newLft, newRgt, newRootId, transaction);
+            await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
         // run queries in the given transaction or create a new transaction
-        if (transaction) {
-            return lambda(transaction);
+        if (options.transaction) {
+            return lambda(options.transaction);
         } else {
             return sequelize.transaction(lambda);
         }
@@ -576,11 +554,13 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} destNode
      * @param {int} newLft
      * @param {string} moveType
+     * @param {object} options
      * @returns {Promise}
      */
     // private
-    Model.prototype.moveBetweenTrees = async function (destNode, newLft, moveType) {
-        await sequelize.transaction(async (transaction) => {
+    Model.prototype.moveBetweenTrees = async function (destNode, newLft, moveType, options = {}) {
+        const lambda = async (transaction) => {
+            options.transaction = transaction;
             const newRootId = destNode.rootId;
             const oldRootId = this.rootId;
             const oldLft = this.lft;
@@ -588,25 +568,23 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             const oldLevel = this.level;
 
             // prepare destination tree => free up some space
-            await this.shiftRlValues(newLft, oldRgt - oldLft - 1, newRootId, transaction);
+            await this.shiftRlValues(newLft, oldRgt - oldLft - 1, newRootId, options);
 
             this.rootId = newRootId;
-            await this.save({
-                transaction: transaction,
-            });
+            await this.save(options);
 
             switch (moveType) {
                 case 'moveAsPrevSiblingOf':
-                    await this.insertAsPrevSiblingOf(destNode, transaction);
+                    await this.insertAsPrevSiblingOf(destNode, options);
                     break;
                 case 'moveAsFirstChildOf':
-                    await this.insertAsFirstChildOf(destNode, transaction);
+                    await this.insertAsFirstChildOf(destNode, options);
                     break;
                 case 'moveAsNextSiblingOf':
-                    await this.insertAsNextSiblingOf(destNode, transaction);
+                    await this.insertAsNextSiblingOf(destNode, options);
                     break;
                 case 'moveAsLastChildOf':
-                    await this.insertAsLastChildOf(destNode, transaction);
+                    await this.insertAsLastChildOf(destNode, options);
                     break;
                 default:
                     throw `Unknown move operation: ${moveType}.`;
@@ -614,130 +592,138 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
             let diff = oldRgt - oldLft;
             this.rgt = this.lft + diff;
-            await this.save({
-                transaction: transaction,
-            });
+            await this.save(options);
 
             const newLevel = this.level;
             const levelDiff = newLevel - oldLevel;
 
             // move children nodes
+            const updOptions = {...options};
+            updOptions.where = updOptions.where || {};
+            updOptions.where.lft = {
+                [Op.gt]: oldLft,
+            };
+            updOptions.where.rgt = {
+                [Op.lt]: oldRgt,
+            };
+            updOptions.where.rootId = oldRootId;
             diff = this.lft - oldLft;
             await this.update({
                 lft: sequelize.literal(`lft + ${diff}`),
                 rgt: sequelize.literal(`rgt + ${diff}`),
                 level: sequelize.literal(`level + ${levelDiff}`),
                 rootId: newRootId,
-            }, {
-                where: {
-                    lft: {
-                        [Op.gt]: oldLft,
-                    },
-                    rgt: {
-                        [Op.lt]: oldRgt,
-                    },
-                    rootId: oldRootId,
-                },
-                transaction: transaction,
-            });
+            }, updOptions);
 
             // fix gap in the old tree
             const first = oldRgt + 1;
             const delta = oldLft - oldRgt - 1;
-            await this.shiftRlValues(first, delta, oldRootId, transaction);
-        });
+            await this.shiftRlValues(first, delta, oldRootId, options);
+        };
+
+        // run queries in the given transaction or create a new transaction
+        if (options.transaction) {
+            return lambda(options.transaction);
+        } else {
+            return sequelize.transaction(lambda);
+        }
     };
 
     /**
      * Move the node as previous sibling of the destination node
      * @param {Model} destNode
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.moveAsPrevSiblingOf = async function (destNode) {
+    Model.prototype.moveAsPrevSiblingOf = async function (destNode, options = {}) {
         if (destNode === this || this.isAncestorOf(destNode) || this.isEqualTo(destNode)) {
             throw 'Cannot move node as previous sibling of itself';
         }
 
         if (destNode.rootId != this.rootId) {
             // move between trees
-            await this.moveBetweenTrees(destNode, destNode.lft, 'moveAsPrevSiblingOf');
+            await this.moveBetweenTrees(destNode, destNode.lft, 'moveAsPrevSiblingOf', options);
         } else {
             // move within tree
             const oldLevel = this.level;
             this.level = destNode.level;
-            await this.updateNode(destNode.lft, this.level - oldLevel);
+            await this.updateNode(destNode.lft, this.level - oldLevel, options);
         }
     };
 
     /**
      * Move the node as next sibling of the destination node
      * @param {Model} destNode
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.moveAsNextSiblingOf = async function (destNode) {
+    Model.prototype.moveAsNextSiblingOf = async function (destNode, options = {}) {
         if (destNode === this || this.isAncestorOf(destNode) || this.isEqualTo(destNode)) {
             throw 'Cannot move node as next sibling of itself';
         }
 
         if (destNode.rootId != this.rootId) {
             // move between trees
-            await this.moveBetweenTrees(destNode, destNode.rgt + 1, 'moveAsNextSiblingOf');
+            await this.moveBetweenTrees(destNode, destNode.rgt + 1, 'moveAsNextSiblingOf', options);
         } else {
             // move within tree
             const oldLevel = this.level;
             this.level = destNode.level;
-            await this.updateNode(destNode.rgt + 1, this.level - oldLevel);
+            await this.updateNode(destNode.rgt + 1, this.level - oldLevel, options);
         }
     };
 
     /**
      * Move the node as first child of the destination node
      * @param {Model} destNode
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.moveAsFirstChildOf = async function (destNode) {
+    Model.prototype.moveAsFirstChildOf = async function (destNode, options = {}) {
         if (destNode === this || this.isAncestorOf(destNode) || this.isEqualTo(destNode)) {
             throw 'Cannot move node as first child of itself or into a descendant';
         }
 
         if (destNode.rootId != this.rootId) {
             // move between trees
-            await this.moveBetweenTrees(destNode, destNode.lft + 1, 'moveAsFirstChildOf');
+            await this.moveBetweenTrees(destNode, destNode.lft + 1, 'moveAsFirstChildOf', options);
         } else {
             // move within tree
             const oldLevel = this.level;
             this.level = destNode.level + 1;
-            await this.updateNode(destNode.lft + 1, this.level - oldLevel);
+            await this.updateNode(destNode.lft + 1, this.level - oldLevel, options);
         }
     };
 
     /**
      * Move the node as last child of the destination node
      * @param {Model} destNode
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.moveAsLastChildOf = async function (destNode) {
+    Model.prototype.moveAsLastChildOf = async function (destNode, options = {}) {
         if (destNode === this || this.isAncestorOf(destNode) || this.isEqualTo(destNode)) {
             throw 'Cannot move node as last child of itself or into a descendant';
         }
 
         if (destNode.rootId != this.rootId) {
             // move between trees
-            await this.moveBetweenTrees(destNode, destNode.rgt, 'moveAsLastChildOf');
+            await this.moveBetweenTrees(destNode, destNode.rgt, 'moveAsLastChildOf', options);
         } else {
             // move within tree
             const oldLevel = this.level;
             this.level = destNode.level + 1;
-            await this.updateNode(destNode.rgt, this.level - oldLevel);
+            await this.updateNode(destNode.rgt, this.level - oldLevel, options);
         }
     };
 
     /**
      * Make this node a root node. Only for multiple-root trees
      * @param {int} newRootId
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.makeRoot = async function (newRootId) {
+    Model.prototype.makeRoot = async function (newRootId, options = {}) {
         if (this.isRoot() || !nsOptions.hasManyRoots) {
             throw 'Cannot make the node root because it is already root or you have disabled hasManyRoots';
         }
@@ -747,49 +733,54 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const oldRoot = this.rootId;
         const oldLevel = this.level;
 
-        await sequelize.transaction(async (transaction) => {
+        const lambda = async (transaction) => {
+            options.where = options.where || {};
+            options.transaction = transaction;
             const diff = 1 - oldLft;
 
+            const updOptions = {...options};
+            updOptions.where.lft = {
+                [Op.gt]: oldLft,
+            };
+            updOptions.where.rgt = {
+                [Op.lt]: oldRgt,
+            };
+            updOptions.where.rootId = oldRoot;
             await this.update({
                 lft: sequelize.literal(`lft + ${diff}`),
                 rgt: sequelize.literal(`rgt + ${diff}`),
                 level: sequelize.literal(`level - ${oldLevel}`),
                 rootId: newRootId,
-            }, {
-                where: {
-                    lft: {
-                        [Op.gt]: oldLft,
-                    },
-                    rgt: {
-                        [Op.lt]: oldRgt,
-                    },
-                    rootId: oldRoot,
-                },
-                transaction: transaction,
-            });
+            }, updOptions);
 
             // fix gap in the old tree
             const first = oldRgt + 1;
             const delta = oldLft - oldRgt - 1;
-            await this.shiftRlValues(first, delta, this.rootId, transaction);
+            await this.shiftRlValues(first, delta, this.rootId, options);
 
             this.lft = 1;
             this.rgt = oldRgt - oldLft + 1;
             this.rootId = newRootId;
             this.level = 0;
-            await this.save({
-                transaction: transaction,
-            });
-        });
+            await this.save(options);
+        };
+
+        // run queries in the given transaction or create a new transaction
+        if (options.transaction) {
+            return lambda(options.transaction);
+        } else {
+            return sequelize.transaction(lambda);
+        }
     };
 
     /**
      * Add the node as last child of the supplied node
      * @param {Model} node
+     * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.addChild = async function (node) {
-        await node.insertAsLastChildOf(this);
+    Model.prototype.addChild = async function (node, options = {}) {
+        await node.insertAsLastChildOf(this, options);
     };
 
     /**
@@ -868,29 +859,36 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
     /**
      * Delete the node with all its children
+     * @param {object} options
      * @returns {Promise<void>}
      */
-    Model.prototype.delete = async function () {
-        await sequelize.transaction(async (transaction) => {
+    Model.prototype.delete = async function (options) {
+        const lambda = async (transaction) => {
+            options.where = options.where || {};
+            options.transaction = transaction;
             const rootId = this.rootId;
 
-            await this.destroy({
-                where: {
-                    lft: {
-                        [Op.gte]: this.lft,
-                    },
-                    rgt: {
-                        [Op.lte]: this.rgt,
-                    },
-                    rootId: rootId,
-                },
-                transaction: transaction,
-            });
+            const dOptions = {...options};
+            dOptions.where.lft = {
+                [Op.gte]: this.lft,
+            };
+            dOptions.where.lft = {
+                [Op.lte]: this.rgt,
+            };
+            dOptions.where.rootId = rootId;
+            await this.destroy(dOptions);
 
             const first = this.rgt + 1;
             const delta = this.lft - this.rgt - 1;
-            await this.shiftRlValues(first, delta, rootId, transaction);
-        });
+            await this.shiftRlValues(first, delta, rootId, options);
+        };
+
+        // run queries in the given transaction or create a new transaction
+        if (options.transaction) {
+            return lambda(options.transaction);
+        } else {
+            return sequelize.transaction(lambda);
+        }
     };
 
     /**
@@ -898,64 +896,67 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {int} destLeft
      * @param {int} destRight
      * @param {int} destRoot
-     * @param {Transaction} transaction
+     * @param {object} options
      * @returns {Promise}
      */
     // private
-    Model.prototype.insertNode = async function (destLeft = 0, destRight = 0, destRoot = 1, transaction = null) {
+    Model.prototype.insertNode = async function (destLeft = 0, destRight = 0, destRoot = 1, options = {}) {
         this.lft = destLeft;
         this.rgt = destRight;
         this.rootId = destRoot;
-        await this.save({
-            transaction: transaction,
-        });
+        await this.save(options);
     };
 
     /**
      * Move node and its children to destLeft and updates the rest of tree
      * @param {int} destLeft
      * @param {int} levelDiff
+     * @param {object} options
      * @returns {Promise}
      */
     // private
-    Model.prototype.updateNode = async function (destLeft, levelDiff) {
+    Model.prototype.updateNode = async function (destLeft, levelDiff, options = {}) {
         let left = this.lft;
         let right = this.rgt;
         const rootId = this.rootId;
 
         const treeSize = right - left + 1;
 
-        await sequelize.transaction(async (transaction) => {
+        const lambda = async (transaction) => {
+            options.where = options.where || {};
+            options.transaction = transaction;
             // free up some space
-            await this.shiftRlValues(destLeft, treeSize, rootId, transaction);
+            await this.shiftRlValues(destLeft, treeSize, rootId, options);
 
             if (left >= destLeft) {
                 left += treeSize;
                 right += treeSize;
             }
 
-            await this.increment('level', {
-                by: levelDiff,
-                where: {
-                    lft: {
-                        [Op.gt]: left,
-                    },
-                    rgt: {
-                        [Op.lt]: right,
-                    },
-                    rootId: rootId,
-                },
-                transaction: transaction,
-            });
+            const incOptions = {...options};
+            incOptions.by = levelDiff;
+            incOptions.where.lft = {
+                [Op.gt]: left,
+            };
+            incOptions.where.rgt = {
+                [Op.lt]: right,
+            };
+            incOptions.where.rootId = rootId;
+            await this.increment('level', incOptions);
 
-            await this.shiftRlRange(left, right, destLeft - left, rootId, transaction);
+            await this.shiftRlRange(left, right, destLeft - left, rootId, options);
 
-            await this.shiftRlValues(right + 1, -treeSize, rootId, transaction);
+            await this.shiftRlValues(right + 1, -treeSize, rootId, options);
 
-            await this.save({
-                transaction: transaction,
-            });
-        });
+            await this.save(options);
+        };
+
+        // run queries in the given transaction or create a new transaction
+        if (options.transaction) {
+            return lambda(options.transaction);
+        } else {
+            return sequelize.transaction(lambda);
+        }
     };
 
     /**
@@ -963,32 +964,31 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {int} first
      * @param {int} delta may be negative
      * @param {int} rootId
-     * @param {Transaction} transaction
+     * @param {object} options
      * @returns {Promise}
      */
     // private
-    Model.prototype.shiftRlValues = async function (first, delta, rootId = 1, transaction = null) {
+    Model.prototype.shiftRlValues = async function (first, delta, rootId = 1, options = {}) {
         const lambda = async (transaction) => {
-            const promise1 = this.increment('lft', {
-                by: delta,
-                where: {
-                    lft: {
-                        [Op.gte]: first,
-                    },
-                    rootId: rootId,
-                },
-                transaction: transaction,
-            });
-            const promise2 = this.increment('rgt', {
-                by: delta,
-                where: {
-                    rgt: {
-                        [Op.gte]: first,
-                    },
-                    rootId: rootId,
-                },
-                transaction: transaction,
-            });
+            options.where = options.where || {};
+            options.transaction = transaction;
+
+            const inc1Options = {...options};
+            inc1Options.by = delta;
+            inc1Options.where.lft = {
+                [Op.gte]: first,
+            };
+            inc1Options.where.rootId = rootId;
+            const promise1 = this.increment('lft', inc1Options);
+
+            const inc2Options = {...options};
+            inc2Options.by = delta;
+            inc2Options.where.rgt = {
+                [Op.gte]: first,
+            };
+            inc2Options.where.rootId = rootId;
+            const promise2 = this.increment('rgt', inc2Options);
+
             return Promise.all([
                 promise1,
                 promise2,
@@ -996,8 +996,8 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         };
 
         // run queries in the given transaction or create a new transaction
-        if (transaction) {
-            return lambda(transaction);
+        if (options.transaction) {
+            return lambda(options.transaction);
         } else {
             return sequelize.transaction(lambda);
         }
@@ -1008,32 +1008,31 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {int} last
      * @param {int} delta may be negative
      * @param {int?} rootId
-     * @param {Transaction} transaction
+     * @param {object} options
      * @returns {Promise}
      */
     // private
-    Model.prototype.shiftRlRange = async function (first, last, delta, rootId = 1, transaction = null) {
+    Model.prototype.shiftRlRange = async function (first, last, delta, rootId = 1, options = {}) {
         const lambda = async (transaction) => {
-            const promise1 = this.increment('lft', {
-                by: delta,
-                where: {
-                    lft: {
-                        [Op.between]: [first, last],
-                    },
-                    rootId: rootId,
-                },
-                transaction: transaction,
-            });
-            const promise2 = this.increment('rgt', {
-                by: delta,
-                where: {
-                    rgt: {
-                        [Op.between]: [first, last],
-                    },
-                    rootId: rootId,
-                },
-                transaction: transaction,
-            });
+            options.where = options.where || {};
+            options.transaction = transaction;
+
+            const inc1Options = {...options};
+            inc1Options.by = delta;
+            inc1Options.where.lft = {
+                [Op.between]: [first, last],
+            };
+            inc1Options.where.rootId = rootId;
+            const promise1 = this.increment('lft', inc1Options);
+
+            const inc2Options = {...options};
+            inc2Options.by = delta;
+            inc2Options.where.rgt = {
+                [Op.between]: [first, last],
+            };
+            inc2Options.where.rootId = rootId;
+            const promise2 = this.increment('rgt', inc2Options);
+
             return Promise.all([
                 promise1,
                 promise2,
@@ -1041,8 +1040,8 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         };
 
         // run queries in the given transaction or create a new transaction
-        if (transaction) {
-            return lambda(transaction);
+        if (options.transaction) {
+            return lambda(options.transaction);
         } else {
             return sequelize.transaction(lambda);
         }
