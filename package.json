@@ -15,6 +15,7 @@
   },
   "keywords": [
     "Sequelize",
+    "sequelize-plugin",
     "nested",
     "set",
     "node",
