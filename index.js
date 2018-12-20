@@ -149,7 +149,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Test if the node has children
      * @returns {boolean}
      */
-    Model.prototype.hasChildren = () => {
+    Model.prototype.hasChildren = function () {
         return this.rgt - this.lft > 1;
     };
 
@@ -157,7 +157,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Test if the node has parent
      * @returns {boolean}
      */
-    Model.prototype.hasParent = () => {
+    Model.prototype.hasParent = function () {
         return !this.isRoot();
     };
 
@@ -358,7 +358,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Get number of descendants (children and their children)
      * @returns {number}
      */
-    Model.prototype.getNumberDescendants = () => {
+    Model.prototype.getNumberDescendants = function () {
         return (this.rgt - this.lft - 1) / 2;
     };
 
@@ -787,7 +787,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Check if the node is leaf
      * @returns {boolean}
      */
-    Model.prototype.isLeaf = () => {
+    Model.prototype.isLeaf = function () {
         return this.rgt - this.lft === 1;
     };
 
@@ -795,7 +795,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * Check if the node is root
      * @returns {boolean}
      */
-    Model.prototype.isRoot = () => {
+    Model.prototype.isRoot = function () {
         return parseInt(this.lft) === 1;
     };
 
@@ -804,7 +804,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} node
      * @returns {boolean}
      */
-    Model.prototype.isEqualTo = (node) => {
+    Model.prototype.isEqualTo = function (node) {
         return parseInt(node.lft) === parseInt(this.lft) && parseInt(node.rgt) === parseInt(this.rgt) &&
             node.rootId == this.rootId;
     };
@@ -814,7 +814,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} node
      * @returns {boolean}
      */
-    Model.prototype.isDescendantOf = (node) => {
+    Model.prototype.isDescendantOf = function (node) {
         return node.lft < this.lft && node.rgt > this.rgt && node.rootId == this.rootId;
     };
 
@@ -823,7 +823,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} node
      * @returns {boolean}
      */
-    Model.prototype.isDescendantOfOrEqualTo = (node) => {
+    Model.prototype.isDescendantOfOrEqualTo = function (node) {
         return node.lft <= this.lft && node.rgt >= this.rgt && node.rootId == this.rootId;
     };
 
@@ -832,7 +832,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model} node
      * @returns {boolean}
      */
-    Model.prototype.isAncestorOf = (node) => {
+    Model.prototype.isAncestorOf = function (node) {
         return node.lft > this.lft && node.rgt < this.rgt && node.rootId == this.rootId;
     };
 
@@ -841,7 +841,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {Model?} node
      * @returns {boolean}
      */
-    Model.prototype.isValidNode = (node = null) => {
+    Model.prototype.isValidNode = function (node = null) {
         if (node !== null) {
             return node.rgt > node.lft;
         } else {
@@ -852,7 +852,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     /**
      * Detach the node from the tree by invalidating its left and right values
      */
-    Model.prototype.detach = () => {
+    Model.prototype.detach = function () {
         this.lft = 0;
         this.rgt = 0;
     };
