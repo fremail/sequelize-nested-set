@@ -61,6 +61,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         record.lft = 1;
         record.rgt = 2;
         record.level = 0;
+        record.rootId = record.rootId || 0; // 0 as tmp value because the column is not null
         await record.save(options);
 
         if (nsOptions.hasManyRoots) {

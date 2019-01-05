@@ -6,7 +6,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Also this project likes fast realizes with even one change to get it live shortly.
 
 ## Next release
-- Add `rootColumnType` option
+
+
+## 1.1.0 - 2019-01-05
+- Add `rootColumnType` option.
+- Bug fix: set tmp value for rootId in `createRoot()` function.
 
 ## 1.0.1 - 2018-12-21
 - Bug fix: replace missed arrow functions to 'function'.
