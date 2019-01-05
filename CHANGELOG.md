@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Also this project likes fast realizes with even one change to get it live shortly.
 
 ## Next release
-
+- Bug fix: add default value for `options` param for `delete()`.
 
 ## 1.1.0 - 2019-01-05
 - Add `rootColumnType` option.

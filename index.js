@@ -864,7 +864,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {object} options
      * @returns {Promise<void>}
      */
-    Model.prototype.delete = async function (options) {
+    Model.prototype.delete = async function (options = {}) {
         const lambda = async (transaction) => {
             options.where = options.where || {};
             options.transaction = transaction;
