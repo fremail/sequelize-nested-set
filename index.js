@@ -47,15 +47,11 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @param {object} options
      * @return {Promise<Model>}
      */
-    Model.createRoot = async function (record = null, options = {}) {
+    Model.createRoot = async function (record, options = {}) {
         if (nsOptions.hasManyRoots) {
-            if (record && record.id && !record.rootId) {
+            if (record.id && !record.rootId) {
                 record.rootId = record.id;
             }
-        }
-
-        if (!record) {
-            record = new Model();
         }
 
         record.lft = 1;
