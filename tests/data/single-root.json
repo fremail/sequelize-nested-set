@@ -1,0 +1,93 @@
+[
+  {
+    "id": "1",
+    "lft": "1",
+    "rgt": "26",
+    "level": "0",
+    "label": "All tags"
+  },
+  {
+    "id": "2",
+    "lft": "2",
+    "rgt": "11",
+    "level": "1",
+    "label": "Colors"
+  },
+  {
+    "id": "3",
+    "lft": "12",
+    "rgt": "25",
+    "level": "1",
+    "label": "Food"
+  },
+  {
+    "id": "4",
+    "lft": "13",
+    "rgt": "20",
+    "level": "2",
+    "label": "Fruits"
+  },
+  {
+    "id": "5",
+    "lft": "3",
+    "rgt": "4",
+    "level": "2",
+    "label": "Green"
+  },
+  {
+    "id": "6",
+    "lft": "5",
+    "rgt": "6",
+    "level": "2",
+    "label": "Orange"
+  },
+  {
+    "id": "7",
+    "lft": "7",
+    "rgt": "8",
+    "level": "2",
+    "label": "Blue"
+  },
+  {
+    "id": "8",
+    "lft": "9",
+    "rgt": "10",
+    "level": "2",
+    "label": "White"
+  },
+  {
+    "id": "9",
+    "lft": "14",
+    "rgt": "15",
+    "level": "3",
+    "label": "Apple"
+  },
+  {
+    "id": "10",
+    "lft": "16",
+    "rgt": "17",
+    "level": "3",
+    "label": "Pear"
+  },
+  {
+    "id": "11",
+    "lft": "18",
+    "rgt": "19",
+    "level": "3",
+    "label": "Banana"
+  },
+  {
+    "id": "12",
+    "lft": "21",
+    "rgt": "24",
+    "level": "2",
+    "label": "Vegetables"
+  },
+  {
+    "id": "13",
+    "lft": "22",
+    "rgt": "23",
+    "level": "3",
+    "label": "Potato"
+  }
+]

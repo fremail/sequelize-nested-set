@@ -1,0 +1,114 @@
+[
+  {
+    "id": "1",
+    "lft": "1",
+    "rgt": "11",
+    "level": "0",
+    "rootId": "1",
+    "label": "Colors"
+  },
+  {
+    "id": "2",
+    "lft": "2",
+    "rgt": "3",
+    "level": "1",
+    "rootId": "1",
+    "label": "Green"
+  },
+  {
+    "id": "3",
+    "lft": "4",
+    "rgt": "5",
+    "level": "1",
+    "rootId": "1",
+    "label": "Orange"
+  },
+  {
+    "id": "4",
+    "lft": "6",
+    "rgt": "11",
+    "level": "1",
+    "rootId": "1",
+    "label": "Blue"
+  },
+  {
+    "id": "5",
+    "lft": "7",
+    "rgt": "8",
+    "level": "2",
+    "rootId": "1",
+    "label": "Light-blue"
+  },
+  {
+    "id": "6",
+    "lft": "9",
+    "rgt": "10",
+    "level": "2",
+    "rootId": "1",
+    "label": "Dark-blue"
+  },
+  {
+    "id": "7",
+    "lft": "12",
+    "rgt": "13",
+    "level": "1",
+    "rootId": "1",
+    "label": "White"
+  },
+  {
+    "id": "8",
+    "lft": "1",
+    "rgt": "14",
+    "level": "0",
+    "rootId": "8",
+    "label": "Food"
+  },
+  {
+    "id": "9",
+    "lft": "2",
+    "rgt": "9",
+    "level": "1",
+    "rootId": "8",
+    "label": "Fruits"
+  },
+  {
+    "id": "10",
+    "lft": "3",
+    "rgt": "4",
+    "level": "2",
+    "rootId": "8",
+    "label": "Apple"
+  },
+  {
+    "id": "11",
+    "lft": "5",
+    "rgt": "6",
+    "level": "2",
+    "rootId": "8",
+    "label": "Pear"
+  },
+  {
+    "id": "12",
+    "lft": "7",
+    "rgt": "8",
+    "level": "2",
+    "rootId": "8",
+    "label": "Banana"
+  },
+  {
+    "id": "13",
+    "lft": "10",
+    "rgt": "13",
+    "level": "1",
+    "rootId": "8",
+    "label": "Vegetables"
+  },
+  {
+    "id": "14",
+    "lft": "11",
+    "rgt": "12",
+    "level": "2",
+    "rootId": "8",
+    "label": "Potato"
+  }
+]
