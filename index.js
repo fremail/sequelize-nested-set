@@ -8,6 +8,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         levelColumnName: options.levelColumnName || 'level',
         hasManyRoots: options.hasManyRoots || false,
         rootColumnName: options.rootColumnName || 'root_id',
+        rootColumnType: options.rootColumnType || DataTypes.INTEGER,
     };
 
     const baseAttributes = {
@@ -31,7 +32,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     };
     if (nsOptions.hasManyRoots) {
         baseAttributes.rootId = {
-            type: DataTypes.INTEGER,
+            type: nsOptions.rootColumnType,
             field: nsOptions.rootColumnName,
             allowNull: false,
         };

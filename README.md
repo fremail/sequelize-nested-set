@@ -44,7 +44,7 @@ Here are the required fields:
 * `level` - int, not null. For its name you can also use `levelColumnName` option.
 
 If you want to store a multi-root tree (several trees in other words), you need to set `hasManyRoots` option to `true` and have one more column:
-* `rootId` - int, not null. Default field name is `root_id`, but you can also use your own with `rootColumnName` option.
+* `rootId` - column type must be the same with `id` column (default: int, but you can change it using `rootColumnType` option), not null. Default field name is `root_id`, but you can also use your own with `rootColumnName` option.
 
 ## Nested Set Options
 
@@ -54,5 +54,5 @@ There are several options to customize your nested set:
 * `rgtColumnName` (string, default: `rgt`) - a column name for rgt.
 * `levelColumnName` (string, default: `level`) - a column name for level.
 * `rootColumnName` (string, default: `root_id`) - a column name for rootId. Value of this option makes sense only if `hasManyRoots` is `true`.
-
+* `rootColumnType` (one of DataTypes.*, default: `DataTypes.INTEGER`) - a column type for rootId. It must be the same column type as the id column. Value of this option makes sense only if `hasManyRoots` is `true`.
 
