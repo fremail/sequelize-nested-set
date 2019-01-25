@@ -200,7 +200,7 @@ describe('Nested Set with many roots', () => {
             });
 
             describe('Add impossible rgt clause to where', () => {
-                it('It returns false', async () => {
+                it('It returns nothing (empty array)', async () => {
                     const tree = await Tag.fetchTree(0, root.rootId, {
                         where: {
                             rgt: {
@@ -260,5 +260,50 @@ describe('Nested Set with many roots', () => {
         });
     });
 
-    describe('#fetchRoots()', () => {});
+    describe('#fetchRoots()', () => {
+        describe('Call without options', () => {
+            it('We get all roots', async () => {
+                const roots = await Tag.fetchRoots();
+
+                expect(roots).to.be.an('array');
+                expect(roots.length > 1).to.be.true;
+                roots.forEach((node) => {
+                    expect(node.isRoot()).to.be.true
+                });
+            });
+        });
+        describe('Call with options', () => {
+            describe('Add real rgt to where', () => {
+                it('We got all root nodes', async () => {
+                    const roots = await Tag.fetchRoots({
+                        where: {
+                            rgt: {
+                                [Op.gte]: 1,
+                            },
+                        },
+                    });
+
+                    expect(roots).to.be.an('array');
+                    expect(roots.length > 1).to.be.true;
+                    roots.forEach((node) => {
+                        expect(node.isRoot()).to.be.true
+                    });
+                });
+            });
+
+            describe('Add impossible rgt clause to where', () => {
+                it('It returns nothing (empty array)', async () => {
+                    const roots = await Tag.fetchRoots({
+                        where: {
+                            rgt: {
+                                [Op.lt]: 1,
+                            },
+                        },
+                    });
+
+                    expect(roots).to.be.an('array').that.is.empty;
+                });
+            });
+        });
+    });
 });
