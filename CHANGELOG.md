@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Also this project likes fast realizes with even one change to get it live shortly.
 
 ## Next release
+New features and bug fixes will be here.
+
+## 1.1.1 - 2019-01-28
 - Bug fix: disallow calling `createRoot()` w/o Sequelize record.
 - Bug fix: add default value for `options` param for `delete()`.
 - Bug fix for `getPrevSibling()`, `getNextSibling()`, `getFirstChild()`, `getLastChild()`, `getParent()`.
