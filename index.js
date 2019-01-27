@@ -275,7 +275,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             };
         }
 
-        const descendants = await this.findAll(options);
+        const descendants = await Model.findAll(options);
 
         return descendants || false;
     };
@@ -337,7 +337,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             };
         }
 
-        const ancestors = await this.findAll(options);
+        const ancestors = await Model.findAll(options);
 
         return ancestors || false;
     };

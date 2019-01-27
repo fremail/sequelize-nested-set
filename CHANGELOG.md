@@ -9,6 +9,7 @@ Also this project likes fast realizes with even one change to get it live shortl
 - Bug fix: disallow calling `createRoot()` w/o Sequelize record.
 - Bug fix: add default value for `options` param for `delete()`.
 - Bug fix for `getPrevSibling()`, `getNextSibling()`, `getFirstChild()`, `getLastChild()`, `getParent()`.
+- Bug fix for `getDescendants()`, `getAncestors()`.
 
 ## 1.1.0 - 2019-01-05
 - Add `rootColumnType` option.
