@@ -168,7 +168,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         options.where = options.where || {};
         options.where.rgt = this.lft - 1;
         options.where.rootId = this.rootId;
-        const sibling = await this.findOne(options);
+        const sibling = await Model.findOne(options);
 
         return sibling || false;
     };
@@ -182,7 +182,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         options.where = options.where || {};
         options.where.lft = this.rgt + 1;
         options.where.rootId = this.rootId;
-        const sibling = await this.findOne(options);
+        const sibling = await Model.findOne(options);
 
         return sibling || false;
     };
@@ -221,7 +221,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         options.where = options.where || {};
         options.where.lft = this.lft + 1;
         options.where.rootId = this.rootId;
-        const child = await this.findOne(options);
+        const child = await Model.findOne(options);
 
         return child || false;
     };
@@ -235,7 +235,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         options.where = options.where || {};
         options.where.rgt = this.rgt - 1;
         options.where.rootId = this.rootId;
-        const child = await this.findOne(options);
+        const child = await Model.findOne(options);
 
         return child || false;
     };
@@ -303,7 +303,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         options.order = options.order || [
             'rgt',
         ];
-        const parent = await this.findOne(options);
+        const parent = await Model.findOne(options);
 
         return parent || false;
     };
