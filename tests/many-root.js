@@ -639,4 +639,30 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#hasParent()', () => {
+        describe('For tag with parents', () => {
+            it('It returns true', async () => {
+                const tag = await Tag.findOne({
+                    where: {
+                        lft: {
+                            [Op.gt]: 1,
+                        },
+                    },
+                });
+                expect(await tag.hasParent()).to.be.true;
+            });
+        });
+
+        describe('For tag without parents', () => {
+            it('It returns false', async () => {
+                const tag = await Tag.findOne({
+                    where: {
+                        lft: 1,
+                    },
+                });
+                expect(await tag.hasParent()).to.be.false;
+            });
+        });
+    });
 });
