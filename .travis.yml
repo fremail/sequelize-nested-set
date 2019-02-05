@@ -1,0 +1,18 @@
+dist: trusty
+
+language: node_js
+
+services:
+  - mysql
+
+before_install:
+  - mysql -e 'CREATE DATABASE nested_set_test;'
+
+env:
+  global:
+    - SNS_DB=nested_set_test
+    - SNS_USER=travis
+
+node_js:
+  - 10
+  - 8
