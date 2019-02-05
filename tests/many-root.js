@@ -610,4 +610,33 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#hasChildren()', () => {
+        describe('For tag with children', () => {
+            it('It returns true', async () => {
+                const tag = await Tag.findOne({
+                    where: {
+                        rgt: {
+                            [Op.gt]: 2,
+                        },
+                        level: 0,
+                    },
+                });
+                expect(await tag.hasChildren()).to.be.true;
+            });
+        });
+
+        describe('For tag without children', () => {
+            it('It returns false', async () => {
+                const tag = await Tag.findOne({
+                    where: {
+                        rgt: {
+                            [Op.eq]: sequelize.literal(`lft + 1`),
+                        },
+                    },
+                });
+                expect(await tag.hasChildren()).to.be.false;
+            });
+        });
+    });
 });
