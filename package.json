@@ -3,6 +3,9 @@
   "version": "1.1.1",
   "description": "Library to store and manage nested set trees using Sequelize",
   "main": "index.js",
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "dependencies": {},
   "devDependencies": {
     "sequelize": "^4.42.0",
