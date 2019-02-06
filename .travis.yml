@@ -16,3 +16,6 @@ env:
 node_js:
   - 10
   - 8
+
+script:
+  - npm run test-with-coverage
