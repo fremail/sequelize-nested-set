@@ -19,6 +19,8 @@ describe('Nested Set with many roots', () => {
             hasManyRoots: true,
         });
 
+        Tag.sync();
+
         await Tag.bulkCreate(data);
     });
 
