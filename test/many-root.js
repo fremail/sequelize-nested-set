@@ -667,4 +667,159 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#getPrevSibling()', () => {
+        describe('For tag with previous siblings', () => {
+            let tag;
+            before(async () => {
+                const result = await sequelize.query(
+                    "SELECT MAX(`id`) as `max_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
+                    FROM `tag` \
+                    GROUP BY `level`, `root_id` \
+                    HAVING `per_lvl` > 1 \
+                    LIMIT 1",
+                    {
+                        type: sequelize.QueryTypes.SELECT,
+                    }
+                );
+                tag = await Tag.findOne({
+                    where: {
+                        id: result[0].max_id,
+                    },
+                });
+            });
+
+            describe('Call without options', () => {
+                it('It returns valid node which is sibling', async () => {
+                    const sibling = await tag.getPrevSibling();
+                    expect(tag.isValidNode(sibling)).to.be.true;
+                    expect(sibling.level == tag.level && sibling.rootId == tag.rootId).to.be.true;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns valid node which is sibling', async () => {
+                        const sibling = await tag.getPrevSibling({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(tag.isValidNode(sibling)).to.be.true;
+                        expect(sibling.level == tag.level && sibling.rootId == tag.rootId).to.be.true;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getPrevSibling({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+
+        describe('For tag with next siblings', () => {
+            let tag;
+            before(async () => {
+                const result = await sequelize.query(
+                    "SELECT MIN(`id`) as `min_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
+                    FROM `tag` \
+                    GROUP BY `level`, `root_id` \
+                    HAVING `per_lvl` > 1 \
+                    LIMIT 1",
+                    {
+                        type: sequelize.QueryTypes.SELECT,
+                    }
+                );
+                tag = await Tag.findOne({
+                    where: {
+                        id: result[0].min_id,
+                    },
+                });
+            });
+
+            describe('Call without options', () => {
+                it('It returns false', async () => {
+                    expect(await tag.getPrevSibling()).to.be.false;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getPrevSibling({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getPrevSibling({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+
+        describe('For tag without siblings', () => {
+            let tag;
+            before(async () => {
+                const result = await sequelize.query(
+                    "SELECT MAX(`id`) `max_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
+                    FROM `tag` \
+                    GROUP BY `level`, `root_id` \
+                    HAVING `per_lvl` = 1 \
+                    LIMIT 1",
+                    {
+                        type: sequelize.QueryTypes.SELECT,
+                    }
+                );
+                tag = await Tag.findOne({
+                    where: {
+                        id: result[0].max_id,
+                    },
+                });
+            });
+
+            describe('Call without options', () => {
+                it('It returns false', async () => {
+                    expect(await tag.getPrevSibling()).to.be.false;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getPrevSibling({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getPrevSibling({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+    });
 });
