@@ -3,6 +3,7 @@
 [![NPM Version](https://img.shields.io/npm/v/sequelize-nested-set.svg?style=flat)](https://www.npmjs.com/package/sequelize-nested-set)
 ![Min Node Version](https://img.shields.io/node/v/sequelize-nested-set.svg?style=flat)
 [![Build Status](https://travis-ci.com/fremail/sequelize-nested-set.svg?branch=master)](https://travis-ci.com/fremail/sequelize-nested-set)
+[![Code Coverage](https://img.shields.io/codecov/c/github/fremail/sequelize-nested-set.svg?style=flat)](https://codecov.io/gh/fremail/sequelize-nested-set)
 ![Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/fremail/sequelize-nested-set/package.json.svg?style=flat)
 ![License](https://img.shields.io/github/license/fremail/sequelize-nested-set.svg)
 
