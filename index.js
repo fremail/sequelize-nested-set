@@ -195,7 +195,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      */
     Model.prototype.getSiblings = async function (withCurrentNode = false, options = {}) {
         const parent = await this.getParent(options);
-        if (!parent) {
+        if (parent) {
             const children = await parent.getChildren(options);
             if (children) {
                 if (withCurrentNode) {
