@@ -2,10 +2,10 @@ const expect = require('chai').expect;
 const ns = require('../');
 const Sequelize = require('sequelize');
 const config = require('./config');
-const helpers = require('./helpers');
 const data = require('./data/many-roots');
 const Op = Sequelize.Op;
-let sequelize, Tag, tag;
+const constants = require('./constants');
+let sequelize, Tag, tag, helpers;
 
 describe('Nested Set with many roots', () => {
     before(async () => {
@@ -20,6 +20,8 @@ describe('Nested Set with many roots', () => {
         });
 
         Tag.sync();
+
+        helpers = require('./helpers')(sequelize, Tag);
 
         await Tag.bulkCreate(data);
     });
@@ -313,21 +315,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with previous siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MAX(`id`) as `max_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].max_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.LAST);
             });
 
             describe('Call without options', () => {
@@ -363,21 +351,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with next siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MIN(`id`) as `min_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].min_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.FIRST);
             });
 
             describe('Call without options', () => {
@@ -413,21 +387,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MAX(`id`) `max_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` = 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].max_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.ALONE);
             });
 
             describe('Call without options', () => {
@@ -465,21 +425,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with previous siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MIN(`id`) as `min_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].min_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.FIRST);
             });
 
             describe('Call without options', () => {
@@ -515,21 +461,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with next siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MAX(`id`) as `max_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].max_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.LAST);
             });
 
             describe('Call without options', () => {
@@ -565,21 +497,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MIN(`id`) `min_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` = 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].min_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.ALONE);
             });
 
             describe('Call without options', () => {
@@ -672,21 +590,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with previous siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MAX(`id`) as `max_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].max_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.LAST);
             });
 
             describe('Call without options', () => {
@@ -725,21 +629,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with next siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MIN(`id`) as `min_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].min_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.FIRST);
             });
 
             describe('Call without options', () => {
@@ -775,21 +665,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MAX(`id`) `max_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` = 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].max_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.ALONE);
             });
 
             describe('Call without options', () => {
@@ -824,24 +700,10 @@ describe('Nested Set with many roots', () => {
     });
 
     describe('#getNextSibling()', () => {
-        describe('For tag with previous siblings', () => {
+        describe('For tag with next siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MIN(`id`) as `min_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].min_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.FIRST);
             });
 
             describe('Call without options', () => {
@@ -877,24 +739,10 @@ describe('Nested Set with many roots', () => {
             });
         });
 
-        describe('For tag with next siblings', () => {
+        describe('For tag with previous siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MAX(`id`) as `max_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].max_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.LAST);
             });
 
             describe('Call without options', () => {
@@ -930,21 +778,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                const result = await sequelize.query(
-                    "SELECT MIN(`id`) `min_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` = 1 \
-                    LIMIT 1",
-                    {
-                        type: sequelize.QueryTypes.SELECT,
-                    }
-                );
-                tag = await Tag.findOne({
-                    where: {
-                        id: result[0].min_id,
-                    },
-                });
+                tag = await helpers.getTagHavingSiblings(constants.ALONE);
             });
 
             describe('Call without options', () => {
@@ -973,6 +807,131 @@ describe('Nested Set with many roots', () => {
                         });
                         expect(result).to.be.false;
                     });
+                });
+            });
+        });
+    });
+
+    describe('#getSiblings()', () => {
+        describe('For tag with siblings', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingSiblings(constants.FIRST);
+            });
+
+            describe('Call with default params', () => {
+                it('It returns a list with valid sibling nodes without current one', async () => {
+                    const siblings = await tag.getSiblings();
+                    expect(siblings).to.be.an('array');
+                    siblings.forEach((node) => {
+                        expect(
+                            node.isValidNode() &&
+                            node.level == tag.level &&
+                            node.rootId == tag.rootId &&
+                            node.id != tag.id
+                        ).to.be.true;
+                    });
+                });
+            });
+
+            describe('Call withCurrentNode = true', () => {
+                it('It returns a list with valid sibling nodes with current node', async () => {
+                    const siblings = await tag.getSiblings(true);
+                    expect(siblings).to.be.an('array');
+                    let hasCurrent = false;
+                    siblings.forEach((node) => {
+                        expect(
+                            node.isValidNode() &&
+                            node.level == tag.level &&
+                            node.rootId == tag.rootId
+                        ).to.be.true;
+                        if (!hasCurrent && node.id == tag.id) {
+                            hasCurrent = true;
+                        }
+                    });
+                    expect(hasCurrent).to.be.true;
+                });
+            });
+
+            describe('Call withCurrentNode = false and possible where in options', () => {
+                it('It returns a list with valid sibling nodes with current node', async () => {
+                    const siblings = await tag.getSiblings(false, {
+                        where: {
+                            rootId: tag.rootId
+                        }
+                    });
+                    expect(siblings).to.be.an('array');
+                    siblings.forEach((node) => {
+                        expect(
+                            node.isValidNode() &&
+                            node.level == tag.level &&
+                            node.rootId == tag.rootId &&
+                            node.id != tag.id
+                        ).to.be.true;
+                    });
+                });
+            });
+
+            describe('Call withCurrentNode = true and possible where in options', () => {
+                it('It returns a list with valid sibling nodes with current node', async () => {
+                    const siblings = await tag.getSiblings(true, {
+                        where: {
+                            rootId: tag.rootId
+                        }
+                    });
+                    expect(siblings).to.be.an('array');
+                    let hasCurrent = false;
+                    siblings.forEach((node) => {
+                        expect(
+                            node.isValidNode() &&
+                            node.level == tag.level &&
+                            node.rootId == tag.rootId
+                        ).to.be.true;
+                        if (!hasCurrent && node.id == tag.id) {
+                            hasCurrent = true;
+                        }
+                    });
+                    expect(hasCurrent).to.be.true;
+                });
+            });
+
+            describe('Call withCurrentNode = false and impossible where in options', () => {
+                it('It returns an empty array', async () => {
+                    const result = await tag.getSiblings(false, {
+                        where: {
+                            id: -tag.id
+                        }
+                    });
+                    expect(result).to.be.an('array');
+                    expect(result).to.be.empty;
+                });
+            });
+
+            describe('Call withCurrentNode = true and impossible where in options', () => {
+                it('It returns an array with only one node - current', async () => {
+                    const siblings = await tag.getSiblings(true, {
+                        where: {
+                            id: -tag.id
+                        }
+                    });
+                    expect(siblings).to.be.an('array');
+                    expect(siblings.length === 1).to.be.true;
+                    expect(tag.isEqualTo(siblings[0])).to.be.true;
+                });
+            });
+        });
+
+        describe('For tag without siblings', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingSiblings(constants.ALONE);
+            });
+
+            describe('Call with default params', () => {
+                it('It returns an empty array', async () => {
+                    const result = await tag.getSiblings();
+                    expect(result).to.be.an('array');
+                    expect(result).to.be.empty;
                 });
             });
         });
