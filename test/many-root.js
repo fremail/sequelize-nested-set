@@ -4,7 +4,7 @@ const Sequelize = require('sequelize');
 const config = require('./config');
 const data = require('./data/many-roots');
 const Op = Sequelize.Op;
-const constants = require('./constants');
+const { LAST, FIRST, ALONE, MANY, ONE } = require('./constants');
 let sequelize, Tag, tag, helpers;
 
 describe('Nested Set with many roots', () => {
@@ -315,7 +315,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with previous siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.LAST);
+                tag = await helpers.getTagHavingSiblings(LAST);
             });
 
             describe('Call without options', () => {
@@ -351,7 +351,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with next siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.FIRST);
+                tag = await helpers.getTagHavingSiblings(FIRST);
             });
 
             describe('Call without options', () => {
@@ -387,7 +387,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.ALONE);
+                tag = await helpers.getTagHavingSiblings(ALONE);
             });
 
             describe('Call without options', () => {
@@ -425,7 +425,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with previous siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.FIRST);
+                tag = await helpers.getTagHavingSiblings(FIRST);
             });
 
             describe('Call without options', () => {
@@ -461,7 +461,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with next siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.LAST);
+                tag = await helpers.getTagHavingSiblings(LAST);
             });
 
             describe('Call without options', () => {
@@ -497,7 +497,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.ALONE);
+                tag = await helpers.getTagHavingSiblings(ALONE);
             });
 
             describe('Call without options', () => {
@@ -590,7 +590,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with previous siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.LAST);
+                tag = await helpers.getTagHavingSiblings(LAST);
             });
 
             describe('Call without options', () => {
@@ -629,7 +629,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with next siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.FIRST);
+                tag = await helpers.getTagHavingSiblings(FIRST);
             });
 
             describe('Call without options', () => {
@@ -665,7 +665,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.ALONE);
+                tag = await helpers.getTagHavingSiblings(ALONE);
             });
 
             describe('Call without options', () => {
@@ -703,7 +703,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with next siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.FIRST);
+                tag = await helpers.getTagHavingSiblings(FIRST);
             });
 
             describe('Call without options', () => {
@@ -742,7 +742,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with previous siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.LAST);
+                tag = await helpers.getTagHavingSiblings(LAST);
             });
 
             describe('Call without options', () => {
@@ -778,7 +778,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.ALONE);
+                tag = await helpers.getTagHavingSiblings(ALONE);
             });
 
             describe('Call without options', () => {
@@ -816,7 +816,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag with siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.FIRST);
+                tag = await helpers.getTagHavingSiblings(FIRST);
             });
 
             describe('Call with default params', () => {
@@ -924,7 +924,7 @@ describe('Nested Set with many roots', () => {
         describe('For tag without siblings', () => {
             let tag;
             before(async () => {
-                tag = await helpers.getTagHavingSiblings(constants.ALONE);
+                tag = await helpers.getTagHavingSiblings(ALONE);
             });
 
             describe('Call with default params', () => {
@@ -932,6 +932,122 @@ describe('Nested Set with many roots', () => {
                     const result = await tag.getSiblings();
                     expect(result).to.be.an('array');
                     expect(result).to.be.empty;
+                });
+            });
+        });
+    });
+
+    describe('#getFirstChild()', () => {
+        describe('For tag with several children', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingChildren(MANY);
+            });
+
+            describe('Call without options', () => {
+                it('It returns valid first child node', async () => {
+                    const child = await tag.getFirstChild();
+                    expect(tag.isValidNode(child)).to.be.true;
+                    expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns valid first child node', async () => {
+                        const child = await tag.getFirstChild({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(tag.isValidNode(child)).to.be.true;
+                        expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getFirstChild({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+
+        describe('For tag with one child', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingChildren(ONE);
+            });
+
+            describe('Call without options', () => {
+                it('It returns a valid child node', async () => {
+                    const child = await tag.getFirstChild();
+                    expect(tag.isValidNode(child)).to.be.true;
+                    expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns a valid child node', async () => {
+                        const child = await tag.getFirstChild({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(tag.isValidNode(child)).to.be.true;
+                        expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getFirstChild({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+
+        describe('For tag without children', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagWithoutChildren();
+            });
+
+            describe('Call without options', () => {
+                it('It returns false', async () => {
+                    expect(await tag.getFirstChild()).to.be.false;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getFirstChild({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getFirstChild({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
                 });
             });
         });

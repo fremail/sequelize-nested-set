@@ -1,4 +1,5 @@
-const constants = require('./constants');
+const { LAST, FIRST, ALONE, MANY, ONE } = require('./constants');
+const { Op } = require('sequelize');
 
 module.exports = (sequelize, Tag) => ({
     getCountOfNodesPerLevel: (nodes) => {
@@ -16,7 +17,7 @@ module.exports = (sequelize, Tag) => ({
     getTagHavingSiblings: async (betweenSiblings = null) => {
         let result;
         switch (betweenSiblings) {
-            case constants.LAST:
+            case LAST:
                 result = await sequelize.query(
                     "SELECT MAX(`id`) as `_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
                     FROM `tag` \
@@ -28,7 +29,7 @@ module.exports = (sequelize, Tag) => ({
                     }
                 );
                 break;
-            case constants.FIRST:
+            case FIRST:
                 result = await sequelize.query(
                     "SELECT MIN(`id`) as `_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
                     FROM `tag` \
@@ -41,7 +42,7 @@ module.exports = (sequelize, Tag) => ({
                 );
                 break;
             default:
-            case constants.ALONE:
+            case ALONE:
                 result = await sequelize.query(
                     "SELECT MAX(`id`) as `_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
                     FROM `tag` \
@@ -59,4 +60,60 @@ module.exports = (sequelize, Tag) => ({
             },
         });
     },
+
+    getTagHavingChildren: async (childrenCount = null) => {
+        let result;
+        switch (childrenCount) {
+            case ONE:
+                result = await sequelize.query(
+                    "SELECT \
+                        t.id, \
+                        (SELECT count(*) \
+                           FROM tag t2 \
+                           WHERE t2.lft > t.lft \
+                             AND t2.rgt < t.rgt \
+                             AND t.root_id = t2.root_id \
+                             AND t2.level = t.level + 1) AS cc \
+                    FROM tag t \
+                    HAVING cc = 1 \
+                    LIMIT 1",
+                    {
+                        type: sequelize.QueryTypes.SELECT,
+                    }
+                );
+                break;
+            case MANY:
+                result = await sequelize.query(
+                    "SELECT \
+                        t.id, \
+                        (SELECT count(*) \
+                           FROM tag t2 \
+                           WHERE t2.lft > t.lft \
+                             AND t2.rgt < t.rgt \
+                             AND t.root_id = t2.root_id \
+                             AND t2.level = t.level + 1) AS cc \
+                    FROM tag t \
+                    HAVING cc > 1 \
+                    LIMIT 1",
+                    {
+                        type: sequelize.QueryTypes.SELECT,
+                    }
+                );
+        }
+        return await Tag.findOne({
+            where: {
+                id: result[0].id,
+            },
+        });
+    },
+
+    getTagWithoutChildren: async () => {
+        return await Tag.findOne({
+            where: {
+                rgt: {
+                    [Op.eq]: sequelize.literal(`lft + 1`),
+                },
+            },
+        });
+    }
 });
