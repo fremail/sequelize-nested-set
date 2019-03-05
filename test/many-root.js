@@ -1052,4 +1052,120 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#getLastChild()', () => {
+        describe('For tag with several children', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingChildren(MANY);
+            });
+
+            describe('Call without options', () => {
+                it('It returns valid last child node', async () => {
+                    const child = await tag.getLastChild();
+                    expect(tag.isValidNode(child)).to.be.true;
+                    expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.rgt + 1 == tag.rgt).to.be.true;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns valid last child node', async () => {
+                        const child = await tag.getLastChild({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(tag.isValidNode(child)).to.be.true;
+                        expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.rgt + 1 == tag.rgt).to.be.true;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getLastChild({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+
+        describe('For tag with one child', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingChildren(ONE);
+            });
+
+            describe('Call without options', () => {
+                it('It returns a valid child node', async () => {
+                    const child = await tag.getLastChild();
+                    expect(tag.isValidNode(child)).to.be.true;
+                    expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns a valid child node', async () => {
+                        const child = await tag.getLastChild({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(tag.isValidNode(child)).to.be.true;
+                        expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getLastChild({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+
+        describe('For tag without children', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagWithoutChildren();
+            });
+
+            describe('Call without options', () => {
+                it('It returns false', async () => {
+                    expect(await tag.getLastChild()).to.be.false;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real level to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getLastChild({
+                            where: {
+                                level: tag.level + 1,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+
+                describe('Add impossible level clause to where', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getLastChild({
+                            where: {
+                                level: tag.level,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+    });
 });
