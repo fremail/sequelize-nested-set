@@ -1168,4 +1168,154 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#getChildren', () => {
+        describe('For tag with several children', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingChildren(MANY);
+            });
+
+            describe('Call without options', () => {
+                it('It returns valid children', async () => {
+                    const children = await tag.getChildren();
+                    const levels = helpers.getCountOfNodesPerLevel(children);
+                    const keys = Object.keys(levels);
+
+                    expect(keys.length).to.be.equal(1);
+                    expect(children.length > 1).to.be.true;
+                    children.forEach((child) => {
+                        expect(tag.isValidNode(child));
+                        expect(child.isDescendantOf(tag));
+                    });
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns valid children', async () => {
+                        const children = await tag.getChildren({
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+                        const levels = helpers.getCountOfNodesPerLevel(children);
+                        const keys = Object.keys(levels);
+
+                        expect(keys.length).to.be.equal(1);
+                        expect(children.length > 1).to.be.true;
+                        children.forEach((child) => {
+                            expect(tag.isValidNode(child));
+                            expect(child.isDescendantOf(tag));
+                        });
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns empty array', async () => {
+                        const result = await tag.getChildren({
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.an('array').empty;
+                    });
+                });
+            });
+        });
+
+        describe('For tag with one child', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingChildren(ONE);
+            });
+
+            describe('Call without options', () => {
+                it('It returns an array with one child', async () => {
+                    const children = await tag.getChildren();
+                    const levels = helpers.getCountOfNodesPerLevel(children);
+                    const keys = Object.keys(levels);
+
+                    expect(keys.length).to.be.equal(1);
+                    expect(children.length).to.be.equal(1);
+                    children.forEach((child) => {
+                        expect(tag.isValidNode(child));
+                        expect(child.isDescendantOf(tag));
+                    });
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns an array with one child', async () => {
+                        const children = await tag.getChildren({
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+                        const levels = helpers.getCountOfNodesPerLevel(children);
+                        const keys = Object.keys(levels);
+
+                        expect(keys.length).to.be.equal(1);
+                        expect(children.length).to.be.equal(1);
+                        children.forEach((child) => {
+                            expect(tag.isValidNode(child));
+                            expect(child.isDescendantOf(tag));
+                        });
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns empty array', async () => {
+                        const result = await tag.getChildren({
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.an('array').empty;
+                    });
+                });
+            });
+        });
+
+        describe('For tag without children', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagWithoutChildren();
+            });
+
+            describe('Call without options', () => {
+                it('It returns empty array', async () => {
+                    expect(await tag.getChildren()).to.be.an('array').empty;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns empty array', async () => {
+                        const result = await tag.getChildren({
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+                        expect(result).to.be.an('array').empty;
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns empty array', async () => {
+                        const result = await tag.getChildren({
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.an('array').empty;
+                    });
+                });
+            });
+        });
+    });
 });
