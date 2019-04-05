@@ -1318,4 +1318,124 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#getDescendants', () => {
+        describe('For tag with several descendants', () => {
+            let tag;
+            before(async () => {
+                const roots = await Tag.fetchRoots();
+                for (let i = 0; i < roots.length; i++) {
+                    tag = roots[i];
+                    const tree = await Tag.fetchTree(0, roots[i].rootId);
+                    const levels = helpers.getCountOfNodesPerLevel(tree);
+                    const keys = Object.keys(levels);
+                    if (keys.length > 1) {
+                        break;
+                    }
+                }
+            });
+
+            describe('Call without params', () => {
+                it('It returns all descendants', async () => {
+                    const newTree = await tag.getDescendants();
+                    const levels = helpers.getCountOfNodesPerLevel(newTree);
+                    const keys = Object.keys(levels);
+
+                    expect(keys.length > 1).to.be.true;
+                    newTree.forEach((node) => {
+                        expect(tag.isValidNode(node));
+                        expect(node.isDescendantOf(tag));
+                    });
+                });
+            });
+            describe('Call with depth = 1', () => {
+                it('It returns only direct children', async () => {
+                    const newTree = await tag.getDescendants(1);
+                    const levels = helpers.getCountOfNodesPerLevel(newTree);
+                    const keys = Object.keys(levels);
+
+                    expect(keys.length).to.be.equal(1);
+                    newTree.forEach((node) => {
+                        expect(tag.isValidNode(node));
+                        expect(node.isDescendantOf(tag));
+                    });
+                });
+            });
+            describe('Call with depth = 0 and options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns valid descendants', async () => {
+                        const newTree = await tag.getDescendants(0, {
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+                        const levels = helpers.getCountOfNodesPerLevel(newTree);
+                        const keys = Object.keys(levels);
+
+                        expect(keys.length > 1).to.be.true;
+                        newTree.forEach((node) => {
+                            expect(tag.isValidNode(node));
+                            expect(node.isDescendantOf(tag));
+                        });
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns empty array', async () => {
+                        const result = await tag.getDescendants(0, {
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.an('array').empty;
+                    });
+                });
+            });
+        });
+
+        describe('For tag without descendants', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagWithoutChildren();
+            });
+
+            describe('Call without params', () => {
+                it('It returns empty array', async () => {
+                    expect(await tag.getDescendants()).to.be.an('array').empty;
+                });
+            });
+            describe('Call with depth = 1', () => {
+                it('It returns empty array', async () => {
+                    expect(await tag.getDescendants(1)).to.be.an('array').empty;
+                });
+            });
+            describe('Call with depth = 0 and options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns empty array', async () => {
+                        const result = await tag.getDescendants(0, {
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+                        expect(result).to.be.an('array').empty;
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns empty array', async () => {
+                        const result = await tag.getDescendants(0, {
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.an('array').empty;
+                    });
+                });
+            });
+        });
+    });
 });
