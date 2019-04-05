@@ -1438,4 +1438,87 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#getParent', () => {
+        describe('For tag with parent', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagWithAncestors(MANY);
+            });
+
+            describe('Call without options', () => {
+                it('It returns valid parent node', async () => {
+                    const parent = await tag.getParent();
+
+                    expect(tag.isValidNode(parent)).to.be.true;
+                    expect(parent.isAncestorOf(tag)).to.be.true;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns valid parent node', async () => {
+                        const parent = await tag.getParent({
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+
+                        expect(tag.isValidNode(parent)).to.be.true;
+                        expect(parent.isAncestorOf(tag)).to.be.true;
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getParent({
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+
+        describe('For tag without parent (root node)', () => {
+            let tag;
+            before(async () => {
+                tag = await Tag.fetchRoot();
+            });
+
+            describe('Call without options', () => {
+                it('It returns false', async () => {
+                    expect(await tag.getParent()).to.be.false;
+                });
+            });
+            describe('Call with options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getParent({
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getParent({
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+    });
 });

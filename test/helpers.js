@@ -115,5 +115,24 @@ module.exports = (sequelize, Tag) => ({
                 },
             },
         });
-    }
+    },
+
+    getTagWithAncestors: async (ancestorsCount) => {
+        let level;
+        switch (ancestorsCount) {
+            case ONE:
+                level = 0;
+                break;
+            case MANY:
+                level = 1;
+                break;
+        }
+        return await Tag.findOne({
+            where: {
+                level: {
+                    [Op.gt]: level,
+                },
+            },
+        });
+    },
 });
