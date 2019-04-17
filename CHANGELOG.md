@@ -8,6 +8,12 @@ Also this project likes fast realizes with even one change to get it live shortl
 ## Next release
 New features and bug fixes will be here.
 
+## 1.1.3 - 2019-04-18
+- Fix `addChild()`, `insertAsParentOf()`, `insertAsLastChildOf()`, `insertAsFirstChildOf()`, `insertAsNextSiblingOf()`, `insertAsPrevSiblingOf()`, `updateNode()`, `shiftRlValues()`, `shiftRlRange()`.
+- Deeply clone options in functions.
+- Update dev dependencies.
+- Improve `isValidNode()`: check record existence.
+
 ## 1.1.2 - 2019-04-06
 - Bug fix for `getSiblings()`.
 

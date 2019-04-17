@@ -1,3 +1,5 @@
+const {cloneDeep} = require('./helpers');
+
 const Sequelize = require('sequelize');
 
 module.exports = function (sequelize, DataTypes, modelName, attributes = {}, options = {}) {
@@ -77,6 +79,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @return {Promise<Model|boolean>}
      */
     Model.fetchRoot = async function (rootId = 1, options = {}) {
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.lft = 1;
         options.where.rootId = rootId;
@@ -93,6 +96,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @return {Promise<Array<Model>|boolean>}
      */
     Model.fetchTree = async function (depth = 0, rootId = 1, options = {}) {
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.lft = {
             [Op.gte]: 1,
@@ -118,6 +122,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @return {Promise<Array<Model>|boolean>}
      */
     Model.fetchRoots = async function (options = {}) {
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.lft = 1;
         const roots = await Model.findAll(options);
@@ -165,6 +170,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise<Model|boolean>}
      */
     Model.prototype.getPrevSibling = async function (options = {}) {
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.rgt = this.lft - 1;
         options.where.rootId = this.rootId;
@@ -179,6 +185,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise<Model|boolean>}
      */
     Model.prototype.getNextSibling = async function (options = {}) {
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.lft = this.rgt + 1;
         options.where.rootId = this.rootId;
@@ -218,6 +225,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise<Model|boolean>}
      */
     Model.prototype.getFirstChild = async function (options = {}) {
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.lft = this.lft + 1;
         options.where.rootId = this.rootId;
@@ -232,6 +240,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      * @returns {Promise<Model|boolean>}
      */
     Model.prototype.getLastChild = async function (options = {}) {
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.rgt = this.rgt - 1;
         options.where.rootId = this.rootId;
@@ -257,6 +266,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      */
     Model.prototype.getDescendants = async function (depth = 0, options = {}) {
         depth = parseInt(depth, 10);
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.lft = {
             [Op.gt]: this.lft,
@@ -289,6 +299,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         if (this.isRoot()) {
             return false;
         }
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.lft = {
             [Op.lt]: this.lft,
@@ -319,6 +330,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             return false;
         }
         depth = parseInt(depth, 10);
+        options = cloneDeep(options);
         options.where = options.where || {};
         options.where.lft = {
             [Op.lt]: this.lft,
@@ -383,13 +395,16 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newLevel = destNode.level;
 
         const lambda = async function (transaction) {
-            options.where = options.where || {};
-            options.transaction = transaction;
+            options = {
+                where: {},
+                transaction: transaction,
+                ...options,
+            };
             // make space for new node
             await this.shiftRlValues(destNode.rgt + 1, 2, newRootId, options);
 
             // update children
-            const incOptions = {...options};
+            const incOptions = cloneDeep(options);
             incOptions.where.lft = {
                 [Op.gte]: newLft,
             };
@@ -397,11 +412,11 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 [Op.lte]: newRgt,
             };
             incOptions.where.rootId = newRootId;
-            await this.increment({
+            await Model.increment({
                 lft: 1,
                 rgt: 1,
                 level: 1,
-            }, options);
+            }, incOptions);
 
             this.level = newLevel;
             await this.insertNode(newLft, newRgt, newRootId, options);
@@ -434,7 +449,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newRootId = destNode.rootId;
 
         const lambda = async (transaction) => {
-            options.transaction = transaction;
+            options = {
+                transaction: transaction,
+                ...options,
+            };
             await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
             await this.insertNode(newLft, newRgt, newRootId, options);
@@ -467,7 +485,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newRootId = destNode.rootId;
 
         const lambda = async (transaction) => {
-            options.transaction = transaction;
+            options = {
+                transaction: transaction,
+                ...options,
+            };
             await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
             await this.insertNode(newLft, newRgt, newRootId, options);
@@ -500,7 +521,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const newRootId = destNode.rootId;
 
         const lambda = async (transaction) => {
-            options.transaction = transaction;
+            options = {
+                transaction: transaction,
+                ...options,
+            };
             await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
             await this.insertNode(newLft, newRgt, newRootId, options);
@@ -529,11 +553,14 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         }
 
         const newLft = destNode.rgt;
-        const newRgt = destNode.lft + 1;
+        const newRgt = destNode.rgt + 1;
         const newRootId = destNode.rootId;
 
         const lambda = async (transaction) => {
-            options.transaction = transaction;
+            options = {
+                transaction: transaction,
+                ...options,
+            };
             await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
             await this.insertNode(newLft, newRgt, newRootId, options);
@@ -558,7 +585,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     // private
     Model.prototype.moveBetweenTrees = async function (destNode, newLft, moveType, options = {}) {
         const lambda = async (transaction) => {
-            options.transaction = transaction;
+            options = {
+                transaction: transaction,
+                ...options,
+            };
             const newRootId = destNode.rootId;
             const oldRootId = this.rootId;
             const oldLft = this.lft;
@@ -596,7 +626,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             const levelDiff = newLevel - oldLevel;
 
             // move children nodes
-            const updOptions = {...options};
+            const updOptions = cloneDeep(options);
             updOptions.where = updOptions.where || {};
             updOptions.where.lft = {
                 [Op.gt]: oldLft,
@@ -732,11 +762,14 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const oldLevel = this.level;
 
         const lambda = async (transaction) => {
-            options.where = options.where || {};
-            options.transaction = transaction;
+            options = {
+                where: {},
+                transaction: transaction,
+                ...options,
+            };
             const diff = 1 - oldLft;
 
-            const updOptions = {...options};
+            const updOptions = cloneDeep(options);
             updOptions.where.lft = {
                 [Op.gt]: oldLft,
             };
@@ -841,9 +874,9 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      */
     Model.prototype.isValidNode = function (node = null) {
         if (node !== null) {
-            return node.rgt > node.lft;
+            return node.rgt > node.lft && !node.isNewRecord;
         } else {
-            return this.rgt > this.lft;
+            return this.rgt > this.lft && !this.isNewRecord;
         }
     };
 
@@ -862,11 +895,14 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      */
     Model.prototype.delete = async function (options = {}) {
         const lambda = async (transaction) => {
-            options.where = options.where || {};
-            options.transaction = transaction;
+            options = {
+                where: {},
+                transaction: transaction,
+                ...options,
+            };
             const rootId = this.rootId;
 
-            const dOptions = {...options};
+            const dOptions = cloneDeep(options);
             dOptions.where.lft = {
                 [Op.gte]: this.lft,
             };
@@ -921,8 +957,11 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const treeSize = right - left + 1;
 
         const lambda = async (transaction) => {
-            options.where = options.where || {};
-            options.transaction = transaction;
+            options = {
+                where: {},
+                transaction: transaction,
+                ...options,
+            };
             // free up some space
             await this.shiftRlValues(destLeft, treeSize, rootId, options);
 
@@ -931,7 +970,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 right += treeSize;
             }
 
-            const incOptions = {...options};
+            const incOptions = cloneDeep(options);
             incOptions.by = levelDiff;
             incOptions.where.lft = {
                 [Op.gt]: left,
@@ -940,7 +979,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 [Op.lt]: right,
             };
             incOptions.where.rootId = rootId;
-            await this.increment('level', incOptions);
+            await Model.increment('level', incOptions);
 
             await this.shiftRlRange(left, right, destLeft - left, rootId, options);
 
@@ -968,24 +1007,27 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     // private
     Model.prototype.shiftRlValues = async function (first, delta, rootId = 1, options = {}) {
         const lambda = async (transaction) => {
-            options.where = options.where || {};
-            options.transaction = transaction;
+            options = {
+                where: {},
+                transaction: transaction,
+                ...options,
+            };
 
-            const inc1Options = {...options};
+            const inc1Options = cloneDeep(options);
             inc1Options.by = delta;
             inc1Options.where.lft = {
                 [Op.gte]: first,
             };
             inc1Options.where.rootId = rootId;
-            const promise1 = this.increment('lft', inc1Options);
+            const promise1 = Model.increment('lft', inc1Options);
 
-            const inc2Options = {...options};
+            const inc2Options = cloneDeep(options);
             inc2Options.by = delta;
             inc2Options.where.rgt = {
                 [Op.gte]: first,
             };
             inc2Options.where.rootId = rootId;
-            const promise2 = this.increment('rgt', inc2Options);
+            const promise2 = Model.increment('rgt', inc2Options);
 
             return Promise.all([
                 promise1,
@@ -1012,24 +1054,27 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     // private
     Model.prototype.shiftRlRange = async function (first, last, delta, rootId = 1, options = {}) {
         const lambda = async (transaction) => {
-            options.where = options.where || {};
-            options.transaction = transaction;
+            options = {
+                where: {},
+                transaction: transaction,
+                ...options,
+            };
 
-            const inc1Options = {...options};
+            const inc1Options = cloneDeep(options);
             inc1Options.by = delta;
             inc1Options.where.lft = {
                 [Op.between]: [first, last],
             };
             inc1Options.where.rootId = rootId;
-            const promise1 = this.increment('lft', inc1Options);
+            const promise1 = Model.increment('lft', inc1Options);
 
-            const inc2Options = {...options};
+            const inc2Options = cloneDeep(options);
             inc2Options.by = delta;
             inc2Options.where.rgt = {
                 [Op.between]: [first, last],
             };
             inc2Options.where.rootId = rootId;
-            const promise2 = this.increment('rgt', inc2Options);
+            const promise2 = Model.increment('rgt', inc2Options);
 
             return Promise.all([
                 promise1,
