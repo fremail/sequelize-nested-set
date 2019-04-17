@@ -841,9 +841,9 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
      */
     Model.prototype.isValidNode = function (node = null) {
         if (node !== null) {
-            return node.rgt > node.lft;
+            return node.rgt > node.lft && !node.isNewRecord;
         } else {
-            return this.rgt > this.lft;
+            return this.rgt > this.lft && !this.isNewRecord;
         }
     };
 
