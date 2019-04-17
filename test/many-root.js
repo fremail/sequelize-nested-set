@@ -1600,4 +1600,47 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#isValidNode', () => {
+        describe('Call from instance', () => {
+            describe('Instance of real existing node', () => {
+                it('It returns true', async () => {
+                    const node = await Tag.findOne();
+                    expect(node.isValidNode()).to.be.true;
+                });
+            });
+            describe('Instance of non existing node', () => {
+                it('It returns false', async () => {
+                    const node = new Tag({
+                        label: 'new node',
+                    });
+                    expect(node.isValidNode()).to.be.false;
+                });
+            });
+        });
+        describe('Call with node as param', () => {
+            describe('for real existing node', () => {
+                it('It returns true', async () => {
+                    const node = await Tag.findOne();
+                    const node2 = await Tag.findOne({
+                        where: {
+                            id: {
+                                [Op.ne]: node.id,
+                            }
+                        }
+                    });
+                    expect(node.isValidNode(node2)).to.be.true;
+                });
+            });
+            describe('for non existing node', () => {
+                it('It returns false', async () => {
+                    const node = await Tag.findOne();
+                    const node2 = new Tag({
+                        label: 'new node',
+                    });
+                    expect(node.isValidNode(node2)).to.be.false;
+                });
+            });
+        });
+    });
 });
