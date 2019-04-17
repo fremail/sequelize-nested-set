@@ -1521,4 +1521,83 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#addChild', () => {
+        describe('For tag with children', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagHavingChildren(MANY);
+            });
+
+            describe('Add new tag without options', () => {
+                it('It adds the child', async () => {
+                    const tagValue = 'new child 1';
+                    await tag.addChild(new Tag({
+                        label: tagValue,
+                    }));
+
+                    const child = await Tag.findOne({
+                        where: {
+                            label: tagValue,
+                        }
+                    });
+                    await tag.reload();
+
+                    expect(tag.isValidNode(child)).to.be.true;
+                    expect(tag.isAncestorOf(child)).to.be.true;
+                });
+            });
+
+            describe('Try to add existing tag without options', () => {
+                it('It throws an exception', async () => {
+                    const child = await Tag.findOne({
+                        where: {
+                            id: {
+                                [Op.ne]: tag.id,
+                            }
+                        }
+                    });
+
+                    // weird way to catch the async exception https://github.com/chaijs/chai/issues/415
+                    await tag.addChild(child).catch((err) => {
+                        expect(() => {throw err}).to.throw();
+                    });
+                });
+            });
+
+            describe('Try to add the same tag as children of itself without options', () => {
+                it('It throws an exception', async () => {
+                    await tag.addChild(tag).catch((err) => {
+                        expect(() => {throw err}).to.throw();
+                    });
+                });
+            });
+        });
+
+        describe('For tag without children', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagWithoutChildren();
+            });
+
+            describe('Call without options', () => {
+                it('It adds the child', async () => {
+                    const tagValue = 'new child 2';
+                    await tag.addChild(new Tag({
+                        label: tagValue,
+                    }));
+
+                    const child = await Tag.findOne({
+                        where: {
+                            label: tagValue,
+                        }
+                    });
+                    await tag.reload();
+
+                    expect(tag.isValidNode(child)).to.be.true;
+                    expect(tag.isAncestorOf(child)).to.be.true;
+                });
+            });
+        });
+    });
 });

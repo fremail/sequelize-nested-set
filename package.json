@@ -6,7 +6,9 @@
   "engines": {
     "node": ">=8.0.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "lodash": "^4.17.11"
+  },
   "devDependencies": {
     "chai": "^4.2.0",
     "codecov": "^3.3.0",
