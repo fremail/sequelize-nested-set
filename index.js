@@ -1,4 +1,4 @@
-const {cloneDeep} = require('./helpers');
+const {cloneDeep, warnDeprecated} = require('./helpers');
 
 const Sequelize = require('sequelize');
 
@@ -747,11 +747,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
     /**
      * Make this node a root node. Only for multiple-root trees
-     * @param {int} newRootId
      * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.makeRoot = async function (newRootId, options = {}) {
+    Model.prototype.makeRoot = async function (options = {}) {
         if (this.isRoot() || !nsOptions.hasManyRoots) {
             throw 'Cannot make the node root because it is already root or you have disabled hasManyRoots';
         }
@@ -760,6 +759,15 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const oldLft = this.lft;
         const oldRoot = this.rootId;
         const oldLevel = this.level;
+        let newRootId = this.id;
+
+        if (!isNaN(parseInt(options))) {
+            warnDeprecated('Using makeRoot() with 2 params is deprecated from version 1.2.0. Please delete redundant newRootId');
+            newRootId = options;
+            if (arguments.length > 1) {
+                options = arguments[1];
+            }
+        }
 
         const lambda = async (transaction) => {
             options = {

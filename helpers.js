@@ -20,6 +20,11 @@ function cloneDeep(obj) {
     });
 }
 
+function warnDeprecated(message) {
+    console.warn(`DEPRECATED: ${message}`);
+}
+
 module.exports = {
     cloneDeep,
+    warnDeprecated,
 };

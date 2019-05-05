@@ -7,6 +7,7 @@ Also this project likes fast realizes with even one change to get it live shortl
 
 ## Next release
 - Rename first param in `addChild()`.
+- Remove redundant newRootId param from `makeRoot()`.
 
 New features and bug fixes will be here.
 
