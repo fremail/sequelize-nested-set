@@ -805,13 +805,13 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     };
 
     /**
-     * Add the node as last child of the supplied node
-     * @param {Model} node
+     * Add the node as last child of the supplied node (new parent)
+     * @param {Model} parentNode
      * @param {object} options
      * @returns {Promise}
      */
-    Model.prototype.addChild = async function (node, options = {}) {
-        await node.insertAsLastChildOf(this, options);
+    Model.prototype.addChild = async function (parentNode, options = {}) {
+        await parentNode.insertAsLastChildOf(this, options);
     };
 
     /**
