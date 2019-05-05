@@ -6,10 +6,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Also this project likes fast realizes with even one change to get it live shortly.
 
 ## Next release
+New features and bug fixes will be here.
+
+## 1.2.0 - 2019-05-06
 - Rename first param in `addChild()`.
 - Remove redundant newRootId param from `makeRoot()`.
-
-New features and bug fixes will be here.
+- Add brief API docs in [wiki](https://github.com/fremail/sequelize-nested-set/wiki).
 
 ## 1.1.3 - 2019-04-18
 - Fix `addChild()`, `insertAsParentOf()`, `insertAsLastChildOf()`, `insertAsFirstChildOf()`, `insertAsNextSiblingOf()`, `insertAsPrevSiblingOf()`, `updateNode()`, `shiftRlValues()`, `shiftRlRange()`.

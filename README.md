@@ -63,3 +63,6 @@ There are several options to customize your nested set:
 * `rootColumnName` (string, default: `root_id`) - a column name for rootId. Value of this option makes sense only if `hasManyRoots` is `true`.
 * `rootColumnType` (one of DataTypes.*, default: `DataTypes.INTEGER`) - a column type for rootId. It must be the same column type as the id column. Value of this option makes sense only if `hasManyRoots` is `true`.
 
+## API docs
+
+I'm trying to keep all functions good-documented, but if you want more info about the functions with examples etc., please visit API docs in [wiki](https://github.com/fremail/sequelize-nested-set/wiki).
