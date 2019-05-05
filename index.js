@@ -849,7 +849,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     };
 
     /**
-     * Check if the node is child of the supplied node
+     * Check if the node is descendant of the supplied node
      * @param {Model} node
      * @returns {boolean}
      */
@@ -858,7 +858,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     };
 
     /**
-     * Check if the node is child or sibling to supplied node
+     * Check if the node is descendant or sibling to supplied node
      * @param {Model} node
      * @returns {boolean}
      */
