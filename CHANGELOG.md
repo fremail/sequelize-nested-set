@@ -6,9 +6,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Also this project likes fast realizes with even one change to get it live shortly.
 
 ## Next release
-- Fix typos in `isDescendantOf()` and `isDescendantOfOrEqualTo()` function description.
-
 New features and bug fixes will be here.
+
+## 1.3.0 - 2019-05-08
+- Fix typos in `isDescendantOf()` and `isDescendantOfOrEqualTo()` function description.
+- Add Sequelize to peerDependencies.
+- Add tests for Sequelize v4 and v5.
+- Fix potential security vulnerability in dependencies.
 
 ## 1.2.0 - 2019-05-06
 - Rename first param in `addChild()`.

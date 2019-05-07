@@ -7,7 +7,7 @@
 ![Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/fremail/sequelize-nested-set/package.json.svg?style=flat)
 ![License](https://img.shields.io/github/license/fremail/sequelize-nested-set.svg)
 
-Library to store and manage nested set trees using [Sequelize](https://github.com/sequelize/sequelize). It supports multi-root trees.
+Library to store and manage nested set trees using [Sequelize](https://github.com/sequelize/sequelize) version 4 or 5. It supports multi-root trees.
 
 Feel free to create an issue or PR if you have a bug or idea.
 

@@ -11,23 +11,26 @@ describe('Nested Set with many roots', () => {
     before(async () => {
         sequelize = new Sequelize(config);
 
+        const tableName = `tag_${Math.random().toString(36).substring(2, 15)}`;
+
         Tag = ns(sequelize, Sequelize.DataTypes, 'Tag', {
             label: Sequelize.DataTypes.STRING,
         }, {
-            tableName: 'tag',
+            tableName: tableName,
+            freezeTableName: true,
             timestamps: false,
             hasManyRoots: true,
         });
 
-        Tag.sync();
+        await Tag.sync();
 
-        helpers = require('./helpers')(sequelize, Tag);
+        helpers = require('./helpers')(sequelize, Tag, tableName);
 
         await Tag.bulkCreate(data);
     });
 
     after(async () => {
-        await Tag.truncate();
+        await Tag.drop();
     });
 
     describe('#createRoot()', () => {

@@ -1,7 +1,7 @@
 const { LAST, FIRST, ALONE, MANY, ONE } = require('./constants');
 const { Op } = require('sequelize');
 
-module.exports = (sequelize, Tag) => ({
+module.exports = (sequelize, Tag, tableName) => ({
     getCountOfNodesPerLevel: (nodes) => {
         let levels = {};
         for (let i = 0; i < nodes.length; i++) {
@@ -19,11 +19,11 @@ module.exports = (sequelize, Tag) => ({
         switch (betweenSiblings) {
             case LAST:
                 result = await sequelize.query(
-                    "SELECT MAX(`id`) as `_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
+                    `SELECT MAX(id) as _id, level, root_id, COUNT(level) as per_lvl \
+                    FROM ${tableName} \
+                    GROUP BY level, root_id \
+                    HAVING per_lvl > 1 \
+                    LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
@@ -31,11 +31,11 @@ module.exports = (sequelize, Tag) => ({
                 break;
             case FIRST:
                 result = await sequelize.query(
-                    "SELECT MIN(`id`) as `_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` > 1 \
-                    LIMIT 1",
+                    `SELECT MIN(id) as _id, level, root_id, COUNT(level) as per_lvl \
+                    FROM ${tableName} \
+                    GROUP BY level, root_id \
+                    HAVING per_lvl > 1 \
+                    LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
@@ -44,11 +44,11 @@ module.exports = (sequelize, Tag) => ({
             default:
             case ALONE:
                 result = await sequelize.query(
-                    "SELECT MAX(`id`) as `_id`, `level`, `root_id`, COUNT(`level`) as `per_lvl` \
-                    FROM `tag` \
-                    GROUP BY `level`, `root_id` \
-                    HAVING `per_lvl` = 1 \
-                    LIMIT 1",
+                    `SELECT MAX(id) as _id, level, root_id, COUNT(level) as per_lvl \
+                    FROM ${tableName} \
+                    GROUP BY level, root_id \
+                    HAVING per_lvl = 1 \
+                    LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
@@ -66,17 +66,17 @@ module.exports = (sequelize, Tag) => ({
         switch (childrenCount) {
             case ONE:
                 result = await sequelize.query(
-                    "SELECT \
+                    `SELECT \
                         t.id, \
                         (SELECT count(*) \
-                           FROM tag t2 \
+                           FROM ${tableName} t2 \
                            WHERE t2.lft > t.lft \
                              AND t2.rgt < t.rgt \
                              AND t.root_id = t2.root_id \
                              AND t2.level = t.level + 1) AS cc \
-                    FROM tag t \
+                    FROM ${tableName} t \
                     HAVING cc = 1 \
-                    LIMIT 1",
+                    LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
@@ -84,17 +84,17 @@ module.exports = (sequelize, Tag) => ({
                 break;
             case MANY:
                 result = await sequelize.query(
-                    "SELECT \
+                    `SELECT \
                         t.id, \
                         (SELECT count(*) \
-                           FROM tag t2 \
+                           FROM ${tableName} t2 \
                            WHERE t2.lft > t.lft \
                              AND t2.rgt < t.rgt \
                              AND t.root_id = t2.root_id \
                              AND t2.level = t.level + 1) AS cc \
-                    FROM tag t \
+                    FROM ${tableName} t \
                     HAVING cc > 1 \
-                    LIMIT 1",
+                    LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }

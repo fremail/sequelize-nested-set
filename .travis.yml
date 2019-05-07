@@ -2,21 +2,37 @@ dist: trusty
 
 language: node_js
 
-services:
-  - mysql
+services: mysql
 
 before_install:
   - mysql -e 'CREATE DATABASE nested_set_test;'
+  - npm install
 
 env:
   global:
     - SNS_DB=nested_set_test
     - SNS_USER=travis
 
-node_js:
-  - 10
-  - 8
+jobs:
+  include:
+    - stage: test
+      install: npm install sequelize@4
+      node_js: '8'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@5
+      node_js: '8'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@4
+      node_js: '10'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@5
+      node_js: '10'
+      script:
+        - npm run test-with-coverage
+        - npm run report-coverage
 
-script:
-  - npm run test-with-coverage
-  - npm run report-coverage
+stages:
+  - test
