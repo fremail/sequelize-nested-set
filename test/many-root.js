@@ -1646,4 +1646,19 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#isLeaf', () => {
+        describe('Call from leaf node', () => {
+            it('It returns true', async () => {
+                const node = await helpers.getTagWithoutChildren();
+                expect(node.isLeaf()).to.be.true;
+            });
+        });
+        describe('Call from node having children', () => {
+            it('It returns false', async () => {
+                const node = await helpers.getTagHavingChildren(MANY);
+                expect(node.isLeaf()).to.be.false;
+            });
+        });
+    });
 });
