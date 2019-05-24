@@ -785,7 +785,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 [Op.lt]: oldRgt,
             };
             updOptions.where.rootId = oldRoot;
-            await this.update({
+            await Model.update({
                 lft: sequelize.literal(`lft + ${diff}`),
                 rgt: sequelize.literal(`rgt + ${diff}`),
                 level: sequelize.literal(`level - ${oldLevel}`),
