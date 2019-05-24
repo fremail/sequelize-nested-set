@@ -1677,4 +1677,64 @@ describe('Nested Set with many roots', () => {
             });
         });
     });
+
+    describe('#makeRoot', () => {
+        describe('Call from node with children', () => {
+            let tag;
+            beforeEach(async () => {
+                tag = await helpers.getTagHavingChildren(MANY, true);
+            });
+
+            describe('Call without options', () => {
+                it('It moves self and all children to the new tree', async () => {
+                    const rootId = tag.id;
+                    await tag.makeRoot();
+                    const tree = await Tag.fetchTree(0, rootId);
+
+                    expect(tree).to.be.an('array');
+                    expect(tree.length > 2).to.be.true;
+                    tree.forEach((node) => {
+                        expect(node.rootId).to.be.equal(rootId);
+                    });
+                });
+            });
+        });
+
+        describe('Call from node without children', () => {
+            let tag;
+            beforeEach(async () => {
+                tag = await helpers.getTagWithoutChildren();
+            });
+
+            describe('Call without options', () => {
+                it('It moves self to the new tree', async () => {
+                    const rootId = tag.id;
+                    await tag.makeRoot();
+                    const tree = await Tag.fetchTree(0, rootId);
+
+                    expect(tree).to.be.an('array');
+                    expect(tree.length === 1).to.be.true;
+                    tree.forEach((node) => {
+                        expect(node.rootId).to.be.equal(rootId);
+                    });
+                });
+            });
+        });
+
+        describe('Call from root node', () => {
+            let tag;
+            beforeEach(async () => {
+                const tags = await Tag.fetchRoots();
+                tag = tags[0];
+            });
+
+            describe('Call without options', () => {
+                it('It throws an exception', async () => {
+                    await tag.makeRoot().catch((err) => {
+                        expect(() => {throw err}).to.throw();
+                    });
+                });
+            });
+        });
+    });
 });

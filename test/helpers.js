@@ -61,8 +61,12 @@ module.exports = (sequelize, Tag, tableName) => ({
         });
     },
 
-    getTagHavingChildren: async (childrenCount = null) => {
+    getTagHavingChildren: async (childrenCount = null, excludeRoots = false) => {
         let result;
+        let where = '';
+        if (excludeRoots) {
+            where = 'WHERE t.root_id <> t.id'
+        }
         switch (childrenCount) {
             case ONE:
                 result = await sequelize.query(
@@ -75,6 +79,7 @@ module.exports = (sequelize, Tag, tableName) => ({
                              AND t.root_id = t2.root_id \
                              AND t2.level = t.level + 1) AS cc \
                     FROM ${tableName} t \
+                    ${where} \
                     HAVING cc = 1 \
                     LIMIT 1`,
                     {
@@ -93,6 +98,7 @@ module.exports = (sequelize, Tag, tableName) => ({
                              AND t.root_id = t2.root_id \
                              AND t2.level = t.level + 1) AS cc \
                     FROM ${tableName} t \
+                    ${where} \
                     HAVING cc > 1 \
                     LIMIT 1`,
                     {
