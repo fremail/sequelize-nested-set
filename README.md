@@ -11,6 +11,16 @@ Library to store and manage nested set trees using [Sequelize](https://github.co
 
 Feel free to create an issue or PR if you have a bug or idea.
 
+## Quick links
+
+* [Installation](#installation)
+* [Getting started](#getting-started)
+* [DB Table structure](#db-table-structure)
+* [Nested Set Options](#nested-set-options)
+* [API docs](https://github.com/fremail/sequelize-nested-set/wiki)
+* [Changelog](CHANGELOG.md)
+* [License (MIT)](LICENSE)
+
 ## Installation
 
 **Warning! This library is on beta testing! Be careful with using it.** 
@@ -41,7 +51,7 @@ module.exports = (sequelize, DataTypes) => {
 };
 ```
 
-## Table structure
+## DB Table structure
 
 Yes, it requires a basic structure of table where you want to keep your tree.
 
