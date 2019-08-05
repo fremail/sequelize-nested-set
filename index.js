@@ -299,24 +299,8 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         if (this.isRoot()) {
             return false;
         }
-        options = cloneDeep(options);
-        options.where = options.where || {};
-        options.where.lft = {
-            [Op.lt]: this.lft,
-        };
-        options.where.rgt = {
-            [Op.gt]: this.rgt,
-        };
-        options.where.level = {
-            [Op.gte]: this.level - 1,
-        };
-        options.where.rootId = this.rootId;
-        options.order = options.order || [
-            'rgt',
-        ];
-        const parent = await Model.findOne(options);
-
-        return parent || false;
+        const parent = await this.getAncestors(1, options);
+        return parent && parent.length ? parent[0] : false;
     };
 
     /**

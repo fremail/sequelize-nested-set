@@ -8,6 +8,7 @@ Also this project likes fast realizes with even one change to get it live shortl
 ## Next release
 - Update [Docs](https://github.com/fremail/sequelize-nested-set/wiki) and README. 
 - Add tests on Node v12.
+- Rework `getParent()` method.
 
 New features and bug fixes will be here.
 
