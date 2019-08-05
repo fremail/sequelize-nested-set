@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Also this project likes fast realizes with even one change to get it live shortly.
 
 ## Next release
+- Update [Docs](https://github.com/fremail/sequelize-nested-set/wiki) and README. 
+
 New features and bug fixes will be here.
 
 ## 1.3.1 - 2019-05-24

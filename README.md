@@ -11,23 +11,28 @@ Library to store and manage nested set trees using [Sequelize](https://github.co
 
 Feel free to create an issue or PR if you have a bug or idea.
 
+P.S. Don't forget to star this library. It stimulates me to support [the library](https://github.com/fremail/sequelize-nested-set)! ⭐️
+
+P.P.S. If you feel like you could help me with the library (writing docs, adding new features, testing, fixing bugs or anything else) - you are welcome! If you need any info or have a question, just email me at fremail@yandex.com
+
 ## Quick links
 
 * [Installation](#installation)
 * [Getting started](#getting-started)
 * [DB Table structure](#db-table-structure)
 * [Nested Set Options](#nested-set-options)
-* [API docs](https://github.com/fremail/sequelize-nested-set/wiki)
+* [Docs](https://github.com/fremail/sequelize-nested-set/wiki)
+* [Docs: All functions](https://github.com/fremail/sequelize-nested-set/wiki/All-Methods)
 * [Changelog](CHANGELOG.md)
 * [License (MIT)](LICENSE)
 
 ## Installation
 
-**Warning! This library is on beta testing! Be careful with using it.** 
-
 ```bash
-npm i sequelize-nested-set
+npm install --save sequelize-nested-set
 ```
+
+Please note, it doesn't install [Sequelize](https://github.com/sequelize/sequelize) itself.
 
 ## Getting started
 
@@ -75,4 +80,4 @@ There are several options to customize your nested set:
 
 ## API docs
 
-I'm trying to keep all functions good-documented, but if you want more info about the functions with examples etc., please visit API docs in [wiki](https://github.com/fremail/sequelize-nested-set/wiki).
+I'm trying to keep all functions good-documented, but if you want more info about the functions with examples etc., please visit API docs in [wiki](https://github.com/fremail/sequelize-nested-set/wiki/All-Methods).
