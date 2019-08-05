@@ -1525,6 +1525,113 @@ describe('Nested Set with many roots', () => {
         });
     });
 
+    describe('#getAncestors', () => {
+        describe('For tag with several ancestors', () => {
+            let tag;
+            before(async () => {
+                tag = await helpers.getTagWithAncestors(MANY);
+            });
+
+            describe('Call without params', () => {
+                it('It returns all ancestors', async () => {
+                    const ancestors = await tag.getAncestors();
+
+                    expect(ancestors.length).to.be.equal(tag.level);
+                    ancestors.forEach((node) => {
+                        expect(tag.isValidNode(node));
+                        expect(node.isAncestorOf(tag));
+                    });
+                });
+            });
+            describe('Call with depth = 1', () => {
+                it('It returns only a parent', async () => {
+                    const ancestors = await tag.getAncestors(1);
+
+                    expect(ancestors.length).to.be.equal(1);
+                    ancestors.forEach((node) => {
+                        expect(node.level).to.be.equal(tag.level - 1);
+                        expect(tag.isValidNode(node));
+                        expect(node.isAncestorOf(tag));
+                    });
+                });
+            });
+            describe('Call with depth = 0 and options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns valid ancestors', async () => {
+                        const ancestors = await tag.getAncestors(0, {
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+
+                        expect(ancestors.length).to.be.equal(tag.level);
+                        ancestors.forEach((node) => {
+                            expect(tag.isValidNode(node));
+                            expect(node.isAncestorOf(tag));
+                        });
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns empty array', async () => {
+                        const result = await tag.getAncestors(0, {
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.an('array').empty;
+                    });
+                });
+            });
+        });
+
+        describe('For tag without ancestors', () => {
+            let tag;
+            before(async () => {
+                const tags = await Tag.fetchRoots();
+                tag = tags[0];
+            });
+
+            describe('Call without params', () => {
+                it('It returns false', async () => {
+                    expect(await tag.getAncestors()).to.be.false;
+                });
+            });
+            describe('Call with depth = 1', () => {
+                it('It returns false', async () => {
+                    expect(await tag.getAncestors(1)).to.be.false;
+                });
+            });
+            describe('Call with depth = 0 and options', () => {
+                describe('Add real where clause', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getAncestors(0, {
+                            where: {
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+
+                describe('Add impossible where clause', () => {
+                    it('It returns false', async () => {
+                        const result = await tag.getAncestors(0, {
+                            where: {
+                                id: tag.id,
+                            },
+                        });
+                        expect(result).to.be.false;
+                    });
+                });
+            });
+        });
+    });
+
     describe('#addChild', () => {
         describe('For tag with children', () => {
             let tag;
