@@ -30,6 +30,14 @@ jobs:
     - stage: test
       install: npm install sequelize@5
       node_js: '10'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@4
+      node_js: '12'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@5
+      node_js: '12'
       script:
         - npm run test-with-coverage
         - npm run report-coverage
