@@ -7,11 +7,18 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     const nsOptions = {
         lftColumnName: options.lftColumnName || 'lft',
         rgtColumnName: options.rgtColumnName || 'rgt',
-        levelColumnName: options.levelColumnName || 'level',
+        // levelColumnName: options.levelColumnName || false,
         hasManyRoots: options.hasManyRoots || false,
         rootColumnName: options.rootColumnName || 'root_id',
         rootColumnType: options.rootColumnType || DataTypes.INTEGER,
     };
+
+    if (typeof options.levelColumnName === 'undefined') {
+        warnDeprecated('Default value for levelColumnName option will be changed to FALSE. Set levelColumnName to "level" for easy upgrade');
+        nsOptions.levelColumnName = 'level';
+    } else {
+        nsOptions.levelColumnName = options.levelColumnName;
+    }
 
     const baseAttributes = {
         lft: {
@@ -26,12 +33,14 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             allowNull: false,
             defaultValue: 2
         },
-        level: {
+    };
+    if (nsOptions.levelColumnName) {
+        baseAttributes.level = {
             type: DataTypes.INTEGER,
             field: nsOptions.levelColumnName,
             allowNull: false,
-        },
-    };
+        };
+    }
     if (nsOptions.hasManyRoots) {
         baseAttributes.rootId = {
             type: nsOptions.rootColumnType,
@@ -102,7 +111,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             [Op.gte]: 1,
         };
         options.where.rootId = rootId;
-        if (depth > 0) {
+        if (depth > 0 && nsOptions.levelColumnName) {
             options.where.level = {
                 [Op.between]: [0, depth],
             };
@@ -112,6 +121,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         ];
 
         const nodes = await Model.findAll(options);
+
+        if (depth > 0 && !nsOptions.levelColumnName) {
+            //
+        }
 
         return nodes || false;
     };

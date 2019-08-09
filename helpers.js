@@ -24,7 +24,33 @@ function warnDeprecated(message) {
     console.warn(`DEPRECATED: ${message}`);
 }
 
+function generateLevel(tree, limit = false) {
+    const newTree = [];
+    const rightValues = {};
+    let prevLft = 0;
+    let prevRgt = 0;
+    let level = -1;
+    tree.forEach((node) => {
+        if (prevLft === node.lft - 1) {
+            level++;
+            rightValues[level] = node.rgt;
+        }
+        if (prevRgt < node.lft - 1) {
+            level -= node.lft - prevRgt;
+        }
+        prevLft = node.lft;
+        prevRgt = node.rgt;
+        // if (limit && level > limit) {
+        //     return;
+        // }
+        node.level = level;
+        newTree.push(node);
+    });
+    return newTree;
+}
+
 module.exports = {
     cloneDeep,
+    generateLevel,
     warnDeprecated,
 };
