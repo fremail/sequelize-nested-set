@@ -6,11 +6,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Also this project likes fast realizes with even one change to get it live shortly.
 
 ## Next release
+New features and bug fixes will be here.
+
+## 1.4.0 - 2019-11-12
 - Update [Docs](https://github.com/fremail/sequelize-nested-set/wiki) and README. 
 - Add tests on Node v12.
 - Rework `getParent()` method.
-
-New features and bug fixes will be here.
+- Fix wrong `where` params in `delete()`.
 
 ## 1.3.1 - 2019-05-24
 - Fix `makeRoot()` function: it didn't move children to new tree.
