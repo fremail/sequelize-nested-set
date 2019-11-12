@@ -895,14 +895,20 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             const rootId = this.rootId;
 
             const dOptions = cloneDeep(options);
-            dOptions.where.lft = {
-                [Op.gte]: this.lft,
-            };
-            dOptions.where.lft = {
-                [Op.lte]: this.rgt,
-            };
+            dOptions.where[Op.and] = [
+                {
+                    lft: {
+                        [Op.gte]: this.lft,
+                    }
+                },
+                {
+                    lft: {
+                        [Op.lte]: this.rgt,
+                    }
+                }
+            ];
             dOptions.where.rootId = rootId;
-            await this.destroy(dOptions);
+            await Model.destroy(dOptions);
 
             const first = this.rgt + 1;
             const delta = this.lft - this.rgt - 1;
