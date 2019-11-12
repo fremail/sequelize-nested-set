@@ -143,6 +143,56 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         return roots || false;
     };
 
+    Model.generateLevel = function (tree) {
+        let prevLft = 0;
+        let prevRgt = 0;
+        let level = -1;
+        return tree.map((node) => {
+            if (prevLft === node.lft - 1) {
+                level++;
+                prevLft = node.lft;
+                prevRgt = node.rgt;
+            }
+            if (prevRgt < node.lft - 1) {
+                level -= node.lft - prevRgt - 1;
+            }
+            prevLft = node.lft;
+            prevRgt = node.rgt;
+            node.level = level;
+            return node;
+        });
+    };
+
+    Model.generateParentId = function (tree) {
+        let prevLft = 0;
+        let prevRgt = 0;
+        let level = -1;
+        let prevId = 0;
+        let parentId = 0;
+        const parentIdsStack = [];
+        return tree.map((node) => {
+            const newNode = cloneDeep(node);
+            if (prevLft === newNode.lft - 1) {
+                parentIdsStack[level] = prevId;
+                level++;
+                parentId = prevId;
+                prevLft = newNode.lft;
+                prevRgt = newNode.rgt;
+                console.log('level up', level, newNode.id);
+            }
+            if (prevRgt < newNode.lft - 1) {
+                level -= newNode.lft - prevRgt - 1;
+                console.log('level down', level, newNode.id);
+                parentId = parentIdsStack[level];
+            }
+            prevLft = newNode.lft;
+            prevRgt = newNode.rgt;
+            prevId = newNode.id;
+            newNode.parentId = parentId;
+            return newNode;
+        });
+    };
+
     /**
      * Test if the node has previous sibling
      * @param {object} options

@@ -20,11 +20,12 @@ describe('Nested Set with many roots', () => {
             freezeTableName: true,
             timestamps: false,
             hasManyRoots: true,
+            levelColumnName: 'level',
         });
 
         await Tag.sync();
 
-        helpers = require('./helpers')(sequelize, Tag, tableName);
+        helpers = require('./test-helpers')(sequelize, Tag, tableName);
 
         await Tag.bulkCreate(data);
     });
@@ -1842,6 +1843,47 @@ describe('Nested Set with many roots', () => {
                     });
                 });
             });
+        });
+    });
+
+    describe('#generateLevel()', () => {
+        it('Result of function is an array of nodes with level', async () => {
+            const tags = await Tag.fetchRoots();
+            const rootId = tags[0].rootId;
+            const origNodes = await Tag.fetchTree(0, rootId);
+            const nodes = Tag.generateLevel(origNodes.map(node => {
+                node.level = null;
+                return node;
+            }));
+
+            expect(nodes).to.be.an('array');
+            await Promise.all(nodes.map(async (node) => {
+                const origNode = await Tag.findOne({
+                    where: {
+                        id: node.id,
+                    }
+                });
+                expect(node.level).to.be.equal(parseInt(origNode.level));
+            }));
+        });
+    });
+
+    describe('#generateParentId()', () => {
+        it('Result of function is an array of nodes with parentId', async () => {
+            const tags = await Tag.fetchRoots();
+            const rootId = tags[0].rootId;
+            const origNodes = await Tag.fetchTree(0, rootId);
+            const nodes = Tag.generateParentId(origNodes);
+
+            expect(nodes).to.be.an('array');
+            await Promise.all(nodes.map(async tag => {
+                const parent = await tag.getParent();
+                console.log(tag.dataValues);
+                console.log(tag.parentId);
+                console.log(parent.dataValues);
+                console.log('---');
+                expect(tag.parentId).to.be.equal(parseInt(parent ? parent.id : 0));
+            }));
         });
     });
 });
