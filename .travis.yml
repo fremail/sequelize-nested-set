@@ -16,28 +16,40 @@ env:
 jobs:
   include:
     - stage: test
-      install: npm install sequelize@4
-      node_js: '8'
-      script: npm run test
-    - stage: test
-      install: npm install sequelize@5
-      node_js: '8'
-      script: npm run test
-    - stage: test
-      install: npm install sequelize@4
+      install: npm install sequelize@4 mysql2@1
       node_js: '10'
       script: npm run test
     - stage: test
-      install: npm install sequelize@5
+      install: npm install sequelize@5 mysql2@1
       node_js: '10'
       script: npm run test
     - stage: test
-      install: npm install sequelize@4
+      install: npm install sequelize@6 mysql2@2
+      node_js: '10'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@4 mysql2@1
       node_js: '12'
       script: npm run test
     - stage: test
-      install: npm install sequelize@5
+      install: npm install sequelize@5 mysql2@1
       node_js: '12'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@6 mysql2@2
+      node_js: '12'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@4 mysql2@1
+      node_js: '14'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@5 mysql2@1
+      node_js: '14'
+      script: npm run test
+    - stage: test
+      install: npm install sequelize@6 mysql2@2
+      node_js: '14'
       script:
         - npm run test-with-coverage
         - npm run report-coverage

@@ -8,6 +8,9 @@ Also this project likes fast realizes with even one change to get it live shortl
 ## Next release
 New features and bug fixes will be here.
 
+## 1.5.0 - 2021-01-06
+- Add Sequelize v6 support.
+
 ## 1.4.0 - 2019-11-12
 - Update [Docs](https://github.com/fremail/sequelize-nested-set/wiki) and README. 
 - Add tests on Node v12.
