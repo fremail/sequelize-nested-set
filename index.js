@@ -438,7 +438,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 ...options,
             };
             await this.shiftRlValues(newLft, 2, newRootId, options);
-            this.level = destNode.level + 1;
+            this.level = destNode.level;
             await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
@@ -474,7 +474,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 ...options,
             };
             await this.shiftRlValues(newLft, 2, newRootId, options);
-            this.level = destNode.level + 1;
+            this.level = destNode.level;
             await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
