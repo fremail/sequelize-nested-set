@@ -8,6 +8,10 @@ Also this project likes fast realizes with even one change to get it live shortl
 ## Next release
 New features and bug fixes will be here.
 
+## 1.5.1 - 2021-01-26
+- Fix insert as sibling methods. [PR #20](https://github.com/fremail/sequelize-nested-set/pull/20) by [@ilgiz-badamshin](https://github.com/ilgiz-badamshin).
+- Fix node move between trees. [PR #19](https://github.com/fremail/sequelize-nested-set/pull/19) by [@ilgiz-badamshin](https://github.com/ilgiz-badamshin).
+
 ## 1.5.0 - 2021-01-06
 - Add Sequelize v6 support.
 
@@ -15,7 +19,7 @@ New features and bug fixes will be here.
 - Update [Docs](https://github.com/fremail/sequelize-nested-set/wiki) and README. 
 - Add tests on Node v12.
 - Rework `getParent()` method.
-- Fix wrong `where` params in `delete()`.
+- Fix wrong `where` params in `delete()`. [PR #15](https://github.com/fremail/sequelize-nested-set/pull/15) by [@aslubsky](https://github.com/aslubsky).
 
 ## 1.3.1 - 2019-05-24
 - Fix `makeRoot()` function: it didn't move children to new tree.
