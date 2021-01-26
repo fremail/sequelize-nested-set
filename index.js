@@ -583,6 +583,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             await this.shiftRlValues(newLft, oldRgt - oldLft - 1, newRootId, options);
 
             this.rootId = newRootId;
+            this.detach()
             await this.save(options);
 
             switch (moveType) {
@@ -620,7 +621,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             };
             updOptions.where.rootId = oldRootId;
             diff = this.lft - oldLft;
-            await this.update({
+            await Model.update({
                 lft: sequelize.literal(`lft + ${diff}`),
                 rgt: sequelize.literal(`rgt + ${diff}`),
                 level: sequelize.literal(`level + ${levelDiff}`),
