@@ -1,10 +1,10 @@
 const expect = require('chai').expect;
 const ns = require('../');
 const Sequelize = require('sequelize');
-const config = require('./config');
+const config = require('./helpers/config');
 const data = require('./data/many-roots');
 const Op = Sequelize.Op;
-const { LAST, FIRST, ALONE, MANY, ONE } = require('./constants');
+const { LAST, FIRST, ALONE, MANY, ONE } = require('./helpers/constants');
 let sequelize, Tag, tag, helpers;
 
 describe('Nested Set with many roots', () => {
@@ -25,7 +25,7 @@ describe('Nested Set with many roots', () => {
 
         await Tag.sync();
 
-        helpers = require('./test-helpers')(sequelize, Tag, tableName);
+        helpers = require('./helpers/helpers')(sequelize, Tag, tableName);
 
         await Tag.bulkCreate(data);
     });
