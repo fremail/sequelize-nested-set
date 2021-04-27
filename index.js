@@ -368,6 +368,9 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         if (this.isRoot()) {
             return false;
         }
+        if (this.parentId) {
+            return await Model.findByPk(this.parentId);
+        }
         const parent = await this.getAncestors(1, options);
         return parent && parent.length ? parent[0] : false;
     };
