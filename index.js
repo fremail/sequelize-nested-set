@@ -7,10 +7,12 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
     const nsOptions = {
         lftColumnName: options.lftColumnName || 'lft',
         rgtColumnName: options.rgtColumnName || 'rgt',
-        // levelColumnName: options.levelColumnName || false,
+        // levelColumnName: options.levelColumnName || false, // todo uncomment for the next major release
         hasManyRoots: options.hasManyRoots || false,
         rootColumnName: options.rootColumnName || 'root_id',
         rootColumnType: options.rootColumnType || DataTypes.INTEGER,
+        parentIdColumnName: options.parentIdColumnName || false,
+        parentIdColumnType: options.parentIdColumnType || DataTypes.INTEGER,
     };
 
     if (typeof options.levelColumnName === 'undefined') {
@@ -33,14 +35,17 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             allowNull: false,
             defaultValue: 2
         },
-    };
-    if (nsOptions.levelColumnName) {
-        baseAttributes.level = {
-            type: DataTypes.INTEGER,
+        level: {
+            type: nsOptions.levelColumnName ? DataTypes.INTEGER : DataTypes.VIRTUAL,
             field: nsOptions.levelColumnName,
             allowNull: false,
-        };
-    }
+        },
+        parentId: {
+            type: nsOptions.parentIdColumnName && nsOptions.parentIdColumnType ? nsOptions.parentIdColumnType : DataTypes.VIRTUAL,
+            field: nsOptions.parentIdColumnName,
+            allowNull: true,
+        },
+    };
     if (nsOptions.hasManyRoots) {
         baseAttributes.rootId = {
             type: nsOptions.rootColumnType,
@@ -68,6 +73,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         record.lft = 1;
         record.rgt = 2;
         record.level = 0;
+        record.parentId = null;
         record.rootId = record.rootId || 0; // 0 as tmp value because the column is not null
         await record.save(options);
 
@@ -120,10 +126,11 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             'lft',
         ];
 
-        const nodes = await Model.findAll(options);
+        let nodes = await Model.findAll(options);
 
         if (depth > 0 && !nsOptions.levelColumnName) {
-            //
+            nodes = Model.generateAdditionalFields(nodes);
+            nodes = nodes.filter((node) => node.level <= depth);
         }
 
         return nodes || false;
@@ -143,33 +150,23 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         return roots || false;
     };
 
-    Model.generateLevel = function (tree) {
-        let prevLft = 0;
-        let prevRgt = 0;
-        let level = -1;
-        return tree.map((node) => {
-            if (prevLft === node.lft - 1) {
-                level++;
-                prevLft = node.lft;
-                prevRgt = node.rgt;
-            }
-            if (prevRgt < node.lft - 1) {
-                level -= node.lft - prevRgt - 1;
-            }
-            prevLft = node.lft;
-            prevRgt = node.rgt;
-            node.level = level;
-            return node;
-        });
-    };
-
-    Model.generateParentId = function (tree) {
+    /**
+     * Generate level and parentId values for the given tree.
+     * The incoming tree must be full (starting from the root).
+     * @param {Model[]} tree flat array with all nodes
+     * @param {boolean} saveValues set to true to save the generated values
+     * @returns {Model[]}
+     */
+    Model.generateAdditionalFields = function (tree, saveValues = false) {
+        if (nsOptions.levelColumnName && nsOptions.parentIdColumnName && !saveValues) {
+            return tree;
+        }
         let prevLft = 0;
         let prevRgt = 0;
         let level = -1;
         let prevId = 0;
         let parentId = 0;
-        const parentIdsStack = [];
+        const parentIdsStack = {};
         return tree.map((node) => {
             const newNode = cloneDeep(node);
             if (prevLft === newNode.lft - 1) {
@@ -178,17 +175,19 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 parentId = prevId;
                 prevLft = newNode.lft;
                 prevRgt = newNode.rgt;
-                console.log('level up', level, newNode.id);
             }
             if (prevRgt < newNode.lft - 1) {
                 level -= newNode.lft - prevRgt - 1;
-                console.log('level down', level, newNode.id);
-                parentId = parentIdsStack[level];
+                parentId = parentIdsStack[level - 1];
             }
             prevLft = newNode.lft;
             prevRgt = newNode.rgt;
             prevId = newNode.id;
             newNode.parentId = parentId;
+            newNode.level = level;
+            if (saveValues) {
+                newNode.save();
+            }
             return newNode;
         });
     };
@@ -338,17 +337,24 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             [Op.lt]: this.rgt,
         };
         options.where.rootId = this.rootId;
-        if (depth === 0) {
-            options.where.level = {
-                [Op.gte]: this.level + 1,
-            };
-        } else {
-            options.where.level = {
-                [Op.between]: [this.level + 1, this.level + depth],
-            };
+        if (nsOptions.levelColumnName) {
+            if (depth === 0) {
+                options.where.level = {
+                    [Op.gte]: this.level + 1,
+                };
+            } else {
+                options.where.level = {
+                    [Op.between]: [this.level + 1, this.level + depth],
+                };
+            }
         }
 
-        const descendants = await Model.findAll(options);
+        let descendants = await Model.findAll(options);
+
+        if (depth > 0 && !nsOptions.levelColumnName) {
+            descendants = Model.generateAdditionalFields(descendants);
+            descendants = descendants.filter((node) => node.level <= depth);
+        }
 
         return descendants || false;
     };
@@ -386,17 +392,24 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             [Op.gt]: this.rgt,
         };
         options.where.rootId = this.rootId;
-        if (depth === 0) {
-            options.where.level = {
-                [Op.lte]: this.level - 1,
-            };
-        } else {
-            options.where.level = {
-                [Op.between]: [this.level - 1, this.level - depth],
-            };
+        if (nsOptions.levelColumnName) {
+            if (depth === 0) {
+                options.where.level = {
+                    [Op.lte]: this.level - 1,
+                };
+            } else {
+                options.where.level = {
+                    [Op.between]: [this.level - 1, this.level - depth],
+                };
+            }
         }
 
-        const ancestors = await Model.findAll(options);
+        let ancestors = await Model.findAll(options);
+
+        if (depth > 0 && !nsOptions.levelColumnName) {
+            ancestors = Model.generateAdditionalFields(ancestors);
+            ancestors = ancestors.filter((node) => node.level <= depth);
+        }
 
         return ancestors || false;
     };
@@ -467,6 +480,11 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
             this.level = newLevel;
             await this.insertNode(newLft, newRgt, newRootId, options);
+
+            if (nsOptions.levelColumnName || nsOptions.parentIdColumnName) {
+                const newFullTree = await Model.fetchTree(0, newRootId);
+                Model.generateAdditionalFields(newFullTree, true);
+            }
         };
 
         // run queries in the given transaction or create a new transaction
@@ -502,6 +520,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             };
             await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level;
+            this.parentId = destNode.parentId;
             await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
@@ -538,6 +557,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             };
             await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level;
+            this.parentId = destNode.parentId;
             await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
@@ -574,6 +594,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             };
             await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
+            this.parentId = destNode.id;
             await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
@@ -610,6 +631,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             };
             await this.shiftRlValues(newLft, 2, newRootId, options);
             this.level = destNode.level + 1;
+            this.parentId = destNode.id;
             await this.insertNode(newLft, newRgt, newRootId, options);
         };
 
@@ -723,6 +745,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             // move within tree
             const oldLevel = this.level;
             this.level = destNode.level;
+            this.parentId = destNode.parentId;
             await this.updateNode(destNode.lft, this.level - oldLevel, options);
         }
     };
@@ -745,6 +768,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             // move within tree
             const oldLevel = this.level;
             this.level = destNode.level;
+            this.parentId = destNode.parentId;
             await this.updateNode(destNode.rgt + 1, this.level - oldLevel, options);
         }
     };
@@ -767,6 +791,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             // move within tree
             const oldLevel = this.level;
             this.level = destNode.level + 1;
+            this.parentId = destNode.id;
             await this.updateNode(destNode.lft + 1, this.level - oldLevel, options);
         }
     };
@@ -789,6 +814,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             // move within tree
             const oldLevel = this.level;
             this.level = destNode.level + 1;
+            this.parentId = destNode.id;
             await this.updateNode(destNode.rgt, this.level - oldLevel, options);
         }
     };
@@ -849,6 +875,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             this.rgt = oldRgt - oldLft + 1;
             this.rootId = newRootId;
             this.level = 0;
+            this.parentId = null;
             await this.save(options);
         };
 

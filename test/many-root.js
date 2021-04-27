@@ -1846,12 +1846,12 @@ describe('Nested Set with many roots', () => {
         });
     });
 
-    describe('#generateLevel()', () => {
+    describe('#generateAdditionalFields()', () => {
         it('Result of function is an array of nodes with level', async () => {
             const tags = await Tag.fetchRoots();
             const rootId = tags[0].rootId;
             const origNodes = await Tag.fetchTree(0, rootId);
-            const nodes = Tag.generateLevel(origNodes.map(node => {
+            const nodes = Tag.generateAdditionalFields(origNodes.map(node => {
                 node.level = null;
                 return node;
             }));
@@ -1866,22 +1866,15 @@ describe('Nested Set with many roots', () => {
                 expect(node.level).to.be.equal(parseInt(origNode.level));
             }));
         });
-    });
-
-    describe('#generateParentId()', () => {
         it('Result of function is an array of nodes with parentId', async () => {
             const tags = await Tag.fetchRoots();
             const rootId = tags[0].rootId;
             const origNodes = await Tag.fetchTree(0, rootId);
-            const nodes = Tag.generateParentId(origNodes);
+            const nodes = Tag.generateAdditionalFields(origNodes);
 
             expect(nodes).to.be.an('array');
             await Promise.all(nodes.map(async tag => {
                 const parent = await tag.getParent();
-                console.log(tag.dataValues);
-                console.log(tag.parentId);
-                console.log(parent.dataValues);
-                console.log('---');
                 expect(tag.parentId).to.be.equal(parseInt(parent ? parent.id : 0));
             }));
         });
