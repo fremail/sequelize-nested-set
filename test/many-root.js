@@ -1849,33 +1849,36 @@ describe('Nested Set with many roots', () => {
     describe('#generateAdditionalFields()', () => {
         it('Result of function is an array of nodes with level', async () => {
             const tags = await Tag.fetchRoots();
-            const rootId = tags[0].rootId;
-            const origNodes = await Tag.fetchTree(0, rootId);
-            const nodes = Tag.generateAdditionalFields(origNodes.map(node => {
-                node.level = null;
-                return node;
-            }));
+            await Promise.all(tags.map(async (rootTag) => {
+                const rootId = rootTag.rootId;
+                const origNodes = await Tag.fetchTree(0, rootId);
+                const nodes = Tag.generateAdditionalFields(origNodes.map(node => {
+                    node.level = null;
+                    return node;
+                }));
 
-            expect(nodes).to.be.an('array');
-            await Promise.all(nodes.map(async (node) => {
-                const origNode = await Tag.findOne({
-                    where: {
-                        id: node.id,
-                    }
-                });
-                expect(node.level).to.be.equal(parseInt(origNode.level));
+                expect(nodes).to.be.an('array');
+                await Promise.all(nodes.map(async (node) => {
+                    const origNode = await Tag.findByPk(node.id);
+                    expect(node.level).to.be.equal(parseInt(origNode.level));
+                }));
             }));
         });
         it('Result of function is an array of nodes with parentId', async () => {
             const tags = await Tag.fetchRoots();
-            const rootId = tags[0].rootId;
-            const origNodes = await Tag.fetchTree(0, rootId);
-            const nodes = Tag.generateAdditionalFields(origNodes);
+            await Promise.all(tags.map(async (rootTag) => {
+                const rootId = rootTag.rootId;
+                const origNodes = await Tag.fetchTree(0, rootId);
+                const nodes = Tag.generateAdditionalFields(origNodes.map(node => {
+                    node.parentId = null;
+                    return node;
+                }));
 
-            expect(nodes).to.be.an('array');
-            await Promise.all(nodes.map(async tag => {
-                const parent = await tag.getParent();
-                expect(tag.parentId).to.be.equal(parseInt(parent ? parent.id : 0));
+                expect(nodes).to.be.an('array');
+                await Promise.all(nodes.map(async tag => {
+                    const parent = await tag.getParent();
+                    expect(tag.parentId).to.be.equal(parseInt(parent ? parent.id : 0));
+                }));
             }));
         });
     });
