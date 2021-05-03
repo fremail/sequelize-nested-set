@@ -3,6 +3,9 @@ const { Op } = require('sequelize');
 
 module.exports = (sequelize, Tag, tableName) => ({
     getCountOfNodesPerLevel: (nodes) => {
+        if (nodes && nodes[0] && typeof nodes[0].level === 'undefined') {
+            nodes = Tag.generateAdditionalFields(nodes);
+        }
         let levels = {};
         for (let i = 0; i < nodes.length; i++) {
             const level = nodes[i].level;
@@ -19,11 +22,13 @@ module.exports = (sequelize, Tag, tableName) => ({
         switch (betweenSiblings) {
             case LAST:
                 result = await sequelize.query(
-                    `SELECT MAX(id) as _id, level, root_id, COUNT(level) as per_lvl \
-                    FROM ${tableName} \
-                    GROUP BY level, root_id \
-                    HAVING per_lvl > 1 \
-                    LIMIT 1`,
+                        `SELECT child.id
+                        FROM ${tableName} child
+                        INNER JOIN ${tableName} parent
+                            ON child.lft > parent.lft + 1 
+                                AND child.rgt = parent.rgt - 1
+                                AND parent.root_id = child.root_id
+                        LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
@@ -31,11 +36,13 @@ module.exports = (sequelize, Tag, tableName) => ({
                 break;
             case FIRST:
                 result = await sequelize.query(
-                    `SELECT MIN(id) as _id, level, root_id, COUNT(level) as per_lvl \
-                    FROM ${tableName} \
-                    GROUP BY level, root_id \
-                    HAVING per_lvl > 1 \
-                    LIMIT 1`,
+                        `SELECT child.id
+                        FROM ${tableName} child
+                        INNER JOIN ${tableName} parent
+                            ON child.lft = parent.lft + 1 
+                                AND child.rgt < parent.rgt - 1
+                                AND parent.root_id = child.root_id
+                        LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
@@ -44,44 +51,38 @@ module.exports = (sequelize, Tag, tableName) => ({
             default:
             case ALONE:
                 result = await sequelize.query(
-                    `SELECT MAX(id) as _id, level, root_id, COUNT(level) as per_lvl \
-                    FROM ${tableName} \
-                    GROUP BY level, root_id \
-                    HAVING per_lvl = 1 \
-                    LIMIT 1`,
+                        `SELECT child.id
+                        FROM ${tableName} child
+                        INNER JOIN ${tableName} parent
+                            ON child.lft = parent.lft + 1 
+                                AND child.rgt = parent.rgt - 1
+                                AND parent.root_id = child.root_id
+                        LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
                 );
         }
-        return await Tag.findOne({
-            where: {
-                id: result[0]._id,
-            },
-        });
+        return await Tag.findByPk(result[0].id);
     },
 
     getTagHavingChildren: async (childrenCount = null, excludeRoots = false) => {
         let result;
         let where = '';
         if (excludeRoots) {
-            where = 'WHERE t.root_id <> t.id'
+            where = 'WHERE parent.root_id <> parent.id'
         }
         switch (childrenCount) {
             case ONE:
                 result = await sequelize.query(
-                    `SELECT \
-                        t.id, \
-                        (SELECT count(*) \
-                           FROM ${tableName} t2 \
-                           WHERE t2.lft > t.lft \
-                             AND t2.rgt < t.rgt \
-                             AND t.root_id = t2.root_id \
-                             AND t2.level = t.level + 1) AS cc \
-                    FROM ${tableName} t \
-                    ${where} \
-                    HAVING cc = 1 \
-                    LIMIT 1`,
+                        `SELECT parent.id
+                        FROM ${tableName} parent
+                        INNER JOIN ${tableName} child
+                            ON child.lft = parent.lft + 1
+                                AND child.rgt = parent.rgt - 1
+                                AND parent.root_id = child.root_id
+                        ${where}
+                        LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
@@ -89,28 +90,20 @@ module.exports = (sequelize, Tag, tableName) => ({
                 break;
             case MANY:
                 result = await sequelize.query(
-                    `SELECT \
-                        t.id, \
-                        (SELECT count(*) \
-                           FROM ${tableName} t2 \
-                           WHERE t2.lft > t.lft \
-                             AND t2.rgt < t.rgt \
-                             AND t.root_id = t2.root_id \
-                             AND t2.level = t.level + 1) AS cc \
-                    FROM ${tableName} t \
-                    ${where} \
-                    HAVING cc > 1 \
-                    LIMIT 1`,
+                        `SELECT parent.id
+                        FROM ${tableName} parent
+                        INNER JOIN ${tableName} child
+                            ON ((child.lft = parent.lft + 1 AND child.rgt < parent.rgt - 1)
+                                OR (child.lft > parent.lft + 1 AND child.rgt = parent.rgt - 1))
+                                AND parent.root_id = child.root_id
+                        ${where}
+                        LIMIT 1`,
                     {
                         type: sequelize.QueryTypes.SELECT,
                     }
                 );
         }
-        return await Tag.findOne({
-            where: {
-                id: result[0].id,
-            },
-        });
+        return await Tag.findByPk(result[0].id);
     },
 
     getTagWithoutChildren: async () => {
@@ -124,21 +117,37 @@ module.exports = (sequelize, Tag, tableName) => ({
     },
 
     getTagWithAncestors: async (ancestorsCount) => {
-        let level;
+        let result;
         switch (ancestorsCount) {
             case ONE:
-                level = 0;
+                result = await sequelize.query(
+                        `SELECT child.id
+                        FROM ${tableName} child
+                        INNER JOIN ${tableName} parent 
+                            ON parent.root_id = child.root_id
+                                AND parent.lft = child.lft - 1
+                        WHERE parent.id = parent.root_id
+                        LIMIT 1`,
+                    {
+                        type: sequelize.QueryTypes.SELECT,
+                    }
+                );
                 break;
             case MANY:
-                level = 1;
+                result = await sequelize.query(
+                        `SELECT child.id
+                        FROM ${tableName} child
+                        INNER JOIN ${tableName} parent 
+                            ON parent.root_id = child.root_id
+                                AND parent.lft = child.lft - 1
+                        WHERE parent.id <> parent.root_id
+                        LIMIT 1`,
+                        {
+                            type: sequelize.QueryTypes.SELECT,
+                        }
+                );
                 break;
         }
-        return await Tag.findOne({
-            where: {
-                level: {
-                    [Op.gt]: level,
-                },
-            },
-        });
+        return await Tag.findByPk(result[0].id);
     },
 });

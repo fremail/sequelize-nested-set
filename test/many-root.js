@@ -328,22 +328,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns true', async () => {
                         const result = await tag.hasPrevSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.true;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasPrevSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -364,22 +366,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasPrevSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasPrevSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -400,22 +404,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasPrevSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasPrevSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -438,22 +444,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns true', async () => {
                         const result = await tag.hasNextSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.true;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasNextSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -474,22 +482,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasNextSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasNextSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -510,22 +520,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasNextSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.hasNextSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id
                             },
                         });
                         expect(result).to.be.false;
@@ -541,9 +553,8 @@ describe('Nested Set with many roots', () => {
                 const tag = await Tag.findOne({
                     where: {
                         rgt: {
-                            [Op.gt]: 2,
+                            [Op.gt]: sequelize.literal(`lft + 1`),
                         },
-                        level: 0,
                     },
                 });
                 expect(await tag.hasChildren()).to.be.true;
@@ -598,30 +609,42 @@ describe('Nested Set with many roots', () => {
             });
 
             describe('Call without options', () => {
-                it('It returns valid node which is sibling', async () => {
+                it('It returns valid node which is previous sibling', async () => {
                     const sibling = await tag.getPrevSibling();
                     expect(tag.isValidNode(sibling)).to.be.true;
-                    expect(sibling.level == tag.level && sibling.rootId == tag.rootId).to.be.true;
+                    expect(sibling.rootId).to.be.equal(tag.rootId);
+                    expect(sibling.lft).to.be.below(tag.lft);
+                    expect(sibling.rgt).to.be.below(tag.rgt);
+                    const parent = tag.getParent();
+                    const siblingParent = sibling.getParent();
+                    expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns valid node which is sibling', async () => {
                         const sibling = await tag.getPrevSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(tag.isValidNode(sibling)).to.be.true;
-                        expect(sibling.level == tag.level && sibling.rootId == tag.rootId).to.be.true;
+                        expect(sibling.rootId).to.be.equal(tag.rootId);
+                        expect(sibling.lft).to.be.below(tag.lft);
+                        expect(sibling.rgt).to.be.below(tag.rgt);
+                        const parent = tag.getParent();
+                        const siblingParent = sibling.getParent();
+                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getPrevSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -642,22 +665,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getPrevSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getPrevSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -678,22 +703,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getPrevSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getPrevSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -714,27 +741,39 @@ describe('Nested Set with many roots', () => {
                 it('It returns valid node which is sibling', async () => {
                     const sibling = await tag.getNextSibling();
                     expect(tag.isValidNode(sibling)).to.be.true;
-                    expect(sibling.level == tag.level && sibling.rootId == tag.rootId).to.be.true;
+                    expect(sibling.rootId).to.be.equal(tag.rootId);
+                    expect(sibling.lft).to.be.above(tag.lft);
+                    expect(sibling.rgt).to.be.above(tag.rgt);
+                    const parent = tag.getParent();
+                    const siblingParent = sibling.getParent();
+                    expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns valid node which is sibling', async () => {
                         const sibling = await tag.getNextSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(tag.isValidNode(sibling)).to.be.true;
-                        expect(sibling.level == tag.level && sibling.rootId == tag.rootId).to.be.true;
+                        expect(sibling.rootId).to.be.equal(tag.rootId);
+                        expect(sibling.lft).to.be.above(tag.lft);
+                        expect(sibling.rgt).to.be.above(tag.rgt);
+                        const parent = tag.getParent();
+                        const siblingParent = sibling.getParent();
+                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getNextSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id
                             },
                         });
                         expect(result).to.be.false;
@@ -755,22 +794,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getNextSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getNextSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -791,22 +832,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getNextSibling({
                             where: {
-                                level: tag.level,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getNextSibling({
                             where: {
-                                level: tag.level + 1,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -827,29 +870,31 @@ describe('Nested Set with many roots', () => {
                 it('It returns a list with valid sibling nodes without current one', async () => {
                     const siblings = await tag.getSiblings();
                     expect(siblings).to.be.an('array');
-                    siblings.forEach((node) => {
-                        expect(
-                            node.isValidNode() &&
-                            node.level == tag.level &&
-                            node.rootId == tag.rootId &&
-                            node.id != tag.id
-                        ).to.be.true;
+                    const parent = tag.getParent();
+                    siblings.forEach((sibling) => {
+                        expect(tag.isValidNode(sibling)).to.be.true;
+                        expect(sibling.id).to.be.not.equal(tag.id);
+                        expect(sibling.rootId).to.be.equal(tag.rootId);
+                        expect(sibling.rgt < tag.lft || sibling.lft > tag.rgt).to.be.true;
+                        const siblingParent = sibling.getParent();
+                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
                     });
                 });
             });
 
             describe('Call withCurrentNode = true', () => {
-                it('It returns a list with valid sibling nodes with current node', async () => {
+                it('It returns a list with valid sibling nodes including current node', async () => {
                     const siblings = await tag.getSiblings(true);
                     expect(siblings).to.be.an('array');
                     let hasCurrent = false;
-                    siblings.forEach((node) => {
-                        expect(
-                            node.isValidNode() &&
-                            node.level == tag.level &&
-                            node.rootId == tag.rootId
-                        ).to.be.true;
-                        if (!hasCurrent && node.id == tag.id) {
+                    const parent = tag.getParent();
+                    siblings.forEach((sibling) => {
+                        expect(tag.isValidNode(sibling)).to.be.true;
+                        expect(sibling.rootId).to.be.equal(tag.rootId);
+                        const siblingParent = sibling.getParent();
+                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
+
+                        if (!hasCurrent && sibling.id == tag.id) {
                             hasCurrent = true;
                         }
                     });
@@ -858,26 +903,27 @@ describe('Nested Set with many roots', () => {
             });
 
             describe('Call withCurrentNode = false and possible where in options', () => {
-                it('It returns a list with valid sibling nodes with current node', async () => {
+                it('It returns a list with valid sibling nodes without current node', async () => {
                     const siblings = await tag.getSiblings(false, {
                         where: {
                             rootId: tag.rootId
                         }
                     });
                     expect(siblings).to.be.an('array');
-                    siblings.forEach((node) => {
-                        expect(
-                            node.isValidNode() &&
-                            node.level == tag.level &&
-                            node.rootId == tag.rootId &&
-                            node.id != tag.id
-                        ).to.be.true;
+                    const parent = tag.getParent();
+                    siblings.forEach((sibling) => {
+                        expect(tag.isValidNode(sibling)).to.be.true;
+                        expect(sibling.id).to.be.not.equal(tag.id);
+                        expect(sibling.rootId).to.be.equal(tag.rootId);
+                        expect(sibling.rgt < tag.lft || sibling.lft > tag.rgt).to.be.true;
+                        const siblingParent = sibling.getParent();
+                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
                     });
                 });
             });
 
             describe('Call withCurrentNode = true and possible where in options', () => {
-                it('It returns a list with valid sibling nodes with current node', async () => {
+                it('It returns a list with valid sibling nodes including current node', async () => {
                     const siblings = await tag.getSiblings(true, {
                         where: {
                             rootId: tag.rootId
@@ -885,13 +931,14 @@ describe('Nested Set with many roots', () => {
                     });
                     expect(siblings).to.be.an('array');
                     let hasCurrent = false;
-                    siblings.forEach((node) => {
-                        expect(
-                            node.isValidNode() &&
-                            node.level == tag.level &&
-                            node.rootId == tag.rootId
-                        ).to.be.true;
-                        if (!hasCurrent && node.id == tag.id) {
+                    const parent = tag.getParent();
+                    siblings.forEach((sibling) => {
+                        expect(tag.isValidNode(sibling)).to.be.true;
+                        expect(sibling.rootId).to.be.equal(tag.rootId);
+                        const siblingParent = sibling.getParent();
+                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
+
+                        if (!hasCurrent && sibling.id == tag.id) {
                             hasCurrent = true;
                         }
                     });
@@ -952,27 +999,33 @@ describe('Nested Set with many roots', () => {
                 it('It returns valid first child node', async () => {
                     const child = await tag.getFirstChild();
                     expect(tag.isValidNode(child)).to.be.true;
-                    expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                    expect(child.rootId).to.be.equal(tag.rootId);
+                    expect(child.lft - 1).to.be.equal(tag.lft);
+                    expect(child.rgt).to.be.below(tag.rgt);
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns valid first child node', async () => {
                         const child = await tag.getFirstChild({
                             where: {
-                                level: tag.level + 1,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(tag.isValidNode(child)).to.be.true;
-                        expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                        expect(child.rootId).to.be.equal(tag.rootId);
+                        expect(child.lft - 1).to.be.equal(tag.lft);
+                        expect(child.rgt).to.be.below(tag.rgt);
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getFirstChild({
                             where: {
-                                level: tag.level,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -991,27 +1044,33 @@ describe('Nested Set with many roots', () => {
                 it('It returns a valid child node', async () => {
                     const child = await tag.getFirstChild();
                     expect(tag.isValidNode(child)).to.be.true;
-                    expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                    expect(child.rootId).to.be.equal(tag.rootId);
+                    expect(child.lft - 1).to.be.equal(tag.lft);
+                    expect(child.rgt).to.be.below(tag.rgt);
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns a valid child node', async () => {
                         const child = await tag.getFirstChild({
                             where: {
-                                level: tag.level + 1,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(tag.isValidNode(child)).to.be.true;
-                        expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                        expect(child.rootId).to.be.equal(tag.rootId);
+                        expect(child.lft - 1).to.be.equal(tag.lft);
+                        expect(child.rgt).to.be.below(tag.rgt);
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getFirstChild({
                             where: {
-                                level: tag.level,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -1032,22 +1091,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getFirstChild({
                             where: {
-                                level: tag.level + 1,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getFirstChild({
                             where: {
-                                level: tag.level,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -1068,27 +1129,33 @@ describe('Nested Set with many roots', () => {
                 it('It returns valid last child node', async () => {
                     const child = await tag.getLastChild();
                     expect(tag.isValidNode(child)).to.be.true;
-                    expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.rgt + 1 == tag.rgt).to.be.true;
+                    expect(child.rootId).to.be.equal(tag.rootId);
+                    expect(child.rgt + 1).to.be.equal(tag.rgt);
+                    expect(child.lft).to.be.above(tag.lft);
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns valid last child node', async () => {
                         const child = await tag.getLastChild({
                             where: {
-                                level: tag.level + 1,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(tag.isValidNode(child)).to.be.true;
-                        expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.rgt + 1 == tag.rgt).to.be.true;
+                        expect(child.rootId).to.be.equal(tag.rootId);
+                        expect(child.rgt + 1).to.be.equal(tag.rgt);
+                        expect(child.lft).to.be.above(tag.lft);
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getLastChild({
                             where: {
-                                level: tag.level,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -1107,27 +1174,33 @@ describe('Nested Set with many roots', () => {
                 it('It returns a valid child node', async () => {
                     const child = await tag.getLastChild();
                     expect(tag.isValidNode(child)).to.be.true;
-                    expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                    expect(child.rootId).to.be.equal(tag.rootId);
+                    expect(child.lft - 1).to.be.equal(tag.lft);
+                    expect(child.rgt).to.be.equal(tag.rgt - 1);
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns a valid child node', async () => {
                         const child = await tag.getLastChild({
                             where: {
-                                level: tag.level + 1,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(tag.isValidNode(child)).to.be.true;
-                        expect(child.level - 1 == tag.level && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                        expect(child.rootId).to.be.equal(tag.rootId);
+                        expect(child.lft - 1).to.be.equal(tag.lft);
+                        expect(child.rgt).to.be.equal(tag.rgt - 1);
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getLastChild({
                             where: {
-                                level: tag.level,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -1148,22 +1221,24 @@ describe('Nested Set with many roots', () => {
                 });
             });
             describe('Call with options', () => {
-                describe('Add real level to where', () => {
+                describe('Add real id to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getLastChild({
                             where: {
-                                level: tag.level + 1,
+                                id: {
+                                    [Op.ne]: tag.id,
+                                },
                             },
                         });
                         expect(result).to.be.false;
                     });
                 });
 
-                describe('Add impossible level clause to where', () => {
+                describe('Add impossible id clause to where', () => {
                     it('It returns false', async () => {
                         const result = await tag.getLastChild({
                             where: {
-                                level: tag.level,
+                                id: tag.id,
                             },
                         });
                         expect(result).to.be.false;
@@ -1537,11 +1612,19 @@ describe('Nested Set with many roots', () => {
                 it('It returns all ancestors', async () => {
                     const ancestors = await tag.getAncestors();
 
-                    expect(ancestors.length).to.be.equal(tag.level);
                     ancestors.forEach((node) => {
                         expect(tag.isValidNode(node));
                         expect(node.isAncestorOf(tag));
                     });
+
+                    const tree = await Tag.fetchTree(0, tag.rootId);
+                    const realAncestors = [];
+                    tree.forEach((node) => {
+                        if (node.isAncestorOf(tag)) {
+                            realAncestors.push(node);
+                        }
+                    });
+                    expect(ancestors.length).to.be.equal(realAncestors.length);
                 });
             });
             describe('Call with depth = 1', () => {
@@ -1549,11 +1632,18 @@ describe('Nested Set with many roots', () => {
                     const ancestors = await tag.getAncestors(1);
 
                     expect(ancestors.length).to.be.equal(1);
-                    ancestors.forEach((node) => {
-                        expect(node.level).to.be.equal(tag.level - 1);
+                    await Promise.all(ancestors.map(async (node) => {
+                        const children = await node.getChildren();
+                        let isChecked = false;
+                        children.forEach((child) => {
+                            if (tag.isEqualTo(child)) {
+                                isChecked = true;
+                            }
+                        })
+                        expect(isChecked).to.be.true;
                         expect(tag.isValidNode(node));
                         expect(node.isAncestorOf(tag));
-                    });
+                    }));
                 });
             });
             describe('Call with depth = 0 and options', () => {
@@ -1567,11 +1657,19 @@ describe('Nested Set with many roots', () => {
                             },
                         });
 
-                        expect(ancestors.length).to.be.equal(tag.level);
                         ancestors.forEach((node) => {
                             expect(tag.isValidNode(node));
                             expect(node.isAncestorOf(tag));
                         });
+
+                        const tree = await Tag.fetchTree(0, tag.rootId);
+                        const realAncestors = [];
+                        tree.forEach((node) => {
+                            if (node.isAncestorOf(tag)) {
+                                realAncestors.push(node);
+                            }
+                        });
+                        expect(ancestors.length).to.be.equal(realAncestors.length);
                     });
                 });
 

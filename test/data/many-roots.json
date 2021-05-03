@@ -65,7 +65,7 @@
   {
     "id": 8,
     "lft": 1,
-    "rgt": 14,
+    "rgt": 16,
     "level": 0,
     "parentId": null,
     "rootId": 8,
@@ -110,7 +110,7 @@
   {
     "id": 13,
     "lft": 10,
-    "rgt": 13,
+    "rgt": 15,
     "level": 1,
     "parentId": 8,
     "rootId": 8,
@@ -119,10 +119,19 @@
   {
     "id": 14,
     "lft": 11,
-    "rgt": 12,
+    "rgt": 14,
     "level": 2,
     "parentId": 13,
     "rootId": 8,
     "label": "Potato"
+  },
+  {
+    "id": 15,
+    "lft": 12,
+    "rgt": 13,
+    "level": 3,
+    "parentId": 14,
+    "rootId": 8,
+    "label": "Egypt Potato"
   }
 ]
