@@ -37,12 +37,12 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         },
         level: {
             type: nsOptions.levelColumnName ? DataTypes.INTEGER : DataTypes.VIRTUAL,
-            field: nsOptions.levelColumnName,
+            field: nsOptions.levelColumnName || undefined,
             allowNull: false,
         },
         parentId: {
             type: nsOptions.parentIdColumnName && nsOptions.parentIdColumnType ? nsOptions.parentIdColumnType : DataTypes.VIRTUAL,
-            field: nsOptions.parentIdColumnName,
+            field: nsOptions.parentIdColumnName || undefined,
             allowNull: true,
         },
     };
@@ -152,7 +152,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
     /**
      * Generate level and parentId values for the given tree.
-     * The incoming tree must be full (starting from the root).
+     * The incoming tree must start from the root and be sorted by 'lft'.
      * @param {Model[]} tree flat array with all nodes
      * @param {boolean} saveValues set to true to save the generated values
      * @returns {Model[]}
@@ -162,14 +162,14 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             return tree;
         }
         let prevLft = 0;
-        let prevRgt = 0;
+        let prevRgt = Infinity;
         let level = -1;
         let prevId = 0;
         let parentId = 0;
         const parentIdsStack = {};
         return tree.map((node) => {
             const newNode = cloneDeep(node);
-            if (prevLft === newNode.lft - 1) {
+            if (prevRgt > newNode.lft) {
                 parentIdsStack[level] = prevId;
                 level++;
                 parentId = prevId;
@@ -179,6 +179,9 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             if (prevRgt < newNode.lft - 1) {
                 level -= newNode.lft - prevRgt - 1;
                 parentId = parentIdsStack[level - 1];
+            }
+            if (level < 0) {
+                level = 0;
             }
             prevLft = newNode.lft;
             prevRgt = newNode.rgt;
@@ -266,7 +269,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         const parent = await this.getParent(options);
         if (parent) {
             const children = await parent.getChildren(options);
-            if (children) {
+            if (children && children.length) {
                 if (withCurrentNode) {
                     return children;
                 } else {
@@ -275,10 +278,8 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                     })
                 }
             }
-        } else if (withCurrentNode) {
-            return [this];
         }
-        return [];
+        return withCurrentNode ? [this] : [];
     };
 
     /**
@@ -337,6 +338,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             [Op.lt]: this.rgt,
         };
         options.where.rootId = this.rootId;
+        options.order = ['lft'];
         if (nsOptions.levelColumnName) {
             if (depth === 0) {
                 options.where.level = {
@@ -351,16 +353,18 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
         let descendants = await Model.findAll(options);
 
-        if (depth > 0 && !nsOptions.levelColumnName) {
-            descendants = Model.generateAdditionalFields(descendants);
-            descendants = descendants.filter((node) => node.level <= depth);
+        if (depth > 0 && !nsOptions.levelColumnName && descendants && descendants.length) {
+            descendants = Model.generateAdditionalFields([this].concat(descendants));
+            // this node is like a root (level = 0)
+            descendants = descendants.filter((node) => node.level > 0 && node.level <= depth);
         }
 
         return descendants || false;
     };
 
     /**
-     * Get parent
+     * Get parent.
+     * Warning! If you have parentId, then it uses only options.transaction and options.searchPath.
      * @param {object} options
      * @returns {Promise<Model|boolean>}
      */
@@ -369,7 +373,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             return false;
         }
         if (this.parentId) {
-            return await Model.findByPk(this.parentId);
+            return await Model.findByPk(this.parentId, options);
         }
         const parent = await this.getAncestors(1, options);
         return parent && parent.length ? parent[0] : false;
@@ -395,6 +399,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             [Op.gt]: this.rgt,
         };
         options.where.rootId = this.rootId;
+        options.order = ['lft'];
         if (nsOptions.levelColumnName) {
             if (depth === 0) {
                 options.where.level = {
@@ -409,9 +414,10 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
 
         let ancestors = await Model.findAll(options);
 
-        if (depth > 0 && !nsOptions.levelColumnName) {
+        if (depth > 0 && !nsOptions.levelColumnName && ancestors && ancestors.length) {
             ancestors = Model.generateAdditionalFields(ancestors);
-            ancestors = ancestors.filter((node) => node.level <= depth);
+            const lastAncestor = ancestors[ancestors.length - 1];
+            ancestors = ancestors.filter((node) => node.level >= lastAncestor.level - depth + 1);
         }
 
         return ancestors || false;

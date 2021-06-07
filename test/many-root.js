@@ -6,1978 +6,1995 @@ const data = require('./data/many-roots');
 const Op = Sequelize.Op;
 const { LAST, FIRST, ALONE, MANY, ONE } = require('./helpers/constants');
 let sequelize, Tag, tag, helpers;
+let currentEnv = {
+    level: false,
+    parentId: false,
+};
 
 describe('Nested Set with many roots', () => {
-    before(async () => {
-        sequelize = new Sequelize(config);
+    [
+        {
+            title: 'Without level and parentId',
+            beforeFunc: async () => {
+                sequelize = new Sequelize(config);
 
-        const tableName = `tag_${Math.random().toString(36).substring(2, 15)}`;
+                const tableName = `tag_${Math.random().
+                        toString(36).
+                        substring(2, 15)}`;
 
-        Tag = ns(sequelize, Sequelize.DataTypes, 'Tag', {
-            label: Sequelize.DataTypes.STRING,
-        }, {
-            tableName: tableName,
-            freezeTableName: true,
-            timestamps: false,
-            hasManyRoots: true,
-            levelColumnName: 'level',
-        });
+                Tag = ns(sequelize, Sequelize.DataTypes, 'Tag', {
+                    label: Sequelize.DataTypes.STRING,
+                }, {
+                    tableName: tableName,
+                    freezeTableName: true,
+                    timestamps: false,
+                    hasManyRoots: true,
+                    levelColumnName: false,
+                });
 
-        await Tag.sync();
+                await Tag.sync();
 
-        helpers = require('./helpers/helpers')(sequelize, Tag, tableName);
+                helpers = require('./helpers/helpers')(sequelize, Tag, tableName);
+                currentEnv = {
+                    level: false,
+                    parentId: false,
+                };
 
-        await Tag.bulkCreate(data);
-    });
+                await Tag.bulkCreate(data);
+            },
+        },
+        {
+            title: 'With level and without parentId',
+            beforeFunc: async () => {
+                sequelize = new Sequelize(config);
 
-    after(async () => {
-        await Tag.drop();
-    });
+                const tableName = `tag_${Math.random().
+                        toString(36).
+                        substring(2, 15)}`;
 
-    describe('#createRoot()', () => {
-        it('New entry is a valid node, is root and w/o children', async () => {
-            // get any tag which is not root (all root tags have lft: 1)
-            tag = new Tag();
-            tag.label = 'New root tag';
+                Tag = ns(sequelize, Sequelize.DataTypes, 'Tag', {
+                    label: Sequelize.DataTypes.STRING,
+                }, {
+                    tableName: tableName,
+                    freezeTableName: true,
+                    timestamps: false,
+                    hasManyRoots: true,
+                    levelColumnName: 'level',
+                });
 
-            tag = await Tag.createRoot(tag);
+                await Tag.sync();
 
-            expect(tag.isValidNode()).to.be.true;
-            expect(tag.isRoot()).to.be.true;
-            expect(tag.isLeaf()).to.be.true;
+                helpers = require('./helpers/helpers')(sequelize, Tag, tableName);
+                currentEnv = {
+                    level: true,
+                    parentId: false,
+                };
 
-            await tag.delete();
-        });
-    });
+                await Tag.bulkCreate(data);
+            },
+        },
+        {
+            title: 'With parentId and without level',
+            beforeFunc: async () => {
+                sequelize = new Sequelize(config);
 
-    describe('#fetchRoot()', () => {
-        describe('Get root node with default params', () => {
-            it('The gotten node is root, id of the node is equal to rootId', async () => {
-                tag = await Tag.fetchRoot();
+                const tableName = `tag_${Math.random().
+                        toString(36).
+                        substring(2, 15)}`;
 
-                expect(tag.isRoot()).to.be.true;
-                expect(tag.id).to.be.equal(tag.rootId);
+                Tag = ns(sequelize, Sequelize.DataTypes, 'Tag', {
+                    label: Sequelize.DataTypes.STRING,
+                }, {
+                    tableName: tableName,
+                    freezeTableName: true,
+                    timestamps: false,
+                    hasManyRoots: true,
+                    levelColumnName: false,
+                    parentIdColumnName: 'parent_id',
+                });
+
+                await Tag.sync();
+
+                helpers = require('./helpers/helpers')(sequelize, Tag, tableName);
+                currentEnv = {
+                    level: false,
+                    parentId: true,
+                };
+
+                await Tag.bulkCreate(data);
+            },
+        },
+    ].forEach(({title, beforeFunc}) => {
+        describe(title, () => {
+            before(beforeFunc);
+
+            after(async () => {
+                await Tag.drop();
             });
-        });
 
-        describe('Get root node with selected rootId', () => {
-            it('The gotten node is root and equal to the root from fetchRoots()', async () => {
-                const roots = await Tag.fetchRoots();
-                const root = roots[Math.floor(Math.random() * roots.length)];
-                tag = await Tag.fetchRoot(root.rootId);
+            describe('#createRoot()', () => {
+                it('New entry is a valid node, is root and w/o children', async () => {
+                    // get any tag which is not root (all root tags have lft: 1)
+                    tag = new Tag();
+                    tag.label = 'New root tag';
 
-                expect(tag.isRoot()).to.be.true;
-                expect(tag.id).to.be.equal(tag.rootId);
-                expect(tag.isEqualTo(root)).to.be.true;
-            });
-        });
+                    tag = await Tag.createRoot(tag);
 
-        describe('Get root node with selected rootId and additional options', () => {
-            let root;
-
-            before(async () => {
-                const roots = await Tag.fetchRoots();
-                let i = 0;
-                do {
-                    root = roots[i];
-                } while (parseInt(root.rootId) === 1 && ++i < roots.length);
-                if (parseInt(root.rootId) === 1) {
-                    console.warn('There is no root nodes with rootId not equal to 1');
-                }
-            });
-
-            describe('Add real rgt to where', () => {
-                it('The gotten node is root and equal to the root from fetchRoots()', async () => {
-                    tag = await Tag.fetchRoot(root.rootId, {
-                        where: {
-                            rgt: root.rgt,
-                        },
-                    });
-
-                    expect(tag).to.be.instanceOf(Tag);
+                    expect(tag.isValidNode()).to.be.true;
                     expect(tag.isRoot()).to.be.true;
-                    expect(tag.isEqualTo(root)).to.be.true;
+                    expect(tag.isLeaf()).to.be.true;
+
+                    await tag.delete();
                 });
             });
 
-            describe('Add unreal rgt to where', () => {
-                it('We got nothing', async () => {
-                    tag = await Tag.fetchRoot(root.rootId, {
-                        where: {
-                            rgt: root.rgt - root.lft,
-                        },
-                    });
+            describe('#fetchRoot()', () => {
+                describe('Get root node with default params', () => {
+                    it('The gotten node is root, id of the node is equal to rootId', async () => {
+                        tag = await Tag.fetchRoot();
 
-                    expect(tag).to.be.false;
-                });
-            });
-        });
-    });
-
-    describe('#fetchTree()', () => {
-        describe('Call with depth = 0 (full tree)', () => {
-            it('We got a tree with several levels, where the greatest level is greater than 1, the first node is root', async () => {
-                const tree = await Tag.fetchTree(0);
-                const levels = helpers.getCountOfNodesPerLevel(tree);
-                const keys = Object.keys(levels);
-                keys.sort();
-
-                expect(keys.length > 1).to.be.true;
-                expect(keys[keys.length - 1] > 1).to.be.true;
-                expect(tree[0].isRoot()).to.be.true;
-            });
-        });
-
-        describe('Call with depth = 1 (only root and 1st level nodes)', () => {
-            it('We got a tree with only 2 levels, where the greatest level is 1, the first node is root', async () => {
-                const tree = await Tag.fetchTree(1);
-                const levels = helpers.getCountOfNodesPerLevel(tree);
-                const keys = Object.keys(levels);
-                keys.sort();
-
-                expect(keys.length).to.be.equal(2);
-                expect(parseInt(keys[keys.length - 1], 10)).to.be.equal(1);
-                expect(tree[0].isRoot()).to.be.true;
-            });
-        });
-
-        describe('Call with depth = 0 (full tree) and selected rootId', () => {
-            it('We got a tree only with selected rootId, with several levels starting from root', async () => {
-                const roots = await Tag.fetchRoots();
-                const rootId = roots[Math.floor(Math.random() * roots.length)].rootId;
-                const tree = await Tag.fetchTree(0, rootId);
-                const levels = helpers.getCountOfNodesPerLevel(tree);
-                const keys = Object.keys(levels);
-                keys.sort();
-
-                tree.forEach((node) => {
-                    expect(node.rootId).to.be.equal(rootId);
-                });
-                expect(keys.length > 1).to.be.true;
-                expect(keys[keys.length - 1] > 1).to.be.true;
-                expect(tree[0].isRoot()).to.be.true;
-            });
-        });
-
-        describe('Call with depth = 1 (only root and 1st level nodes) and selected rootId', () => {
-            it('We got a tree only with selected rootId, where nodes from root and first levels', async () => {
-                const roots = await Tag.fetchRoots();
-                const rootId = roots[Math.floor(Math.random() * roots.length)].rootId;
-                const tree = await Tag.fetchTree(1, rootId);
-                const levels = helpers.getCountOfNodesPerLevel(tree);
-                const keys = Object.keys(levels);
-                keys.sort();
-
-                tree.forEach((node) => {
-                    expect(node.rootId).to.be.equal(rootId);
-                });
-                expect(keys.length).to.be.equal(2);
-                expect(parseInt(keys[keys.length - 1], 10)).to.be.equal(1);
-                expect(tree[0].isRoot()).to.be.true;
-            });
-        });
-
-        describe('Call with depth = 0 (full tree), selected rootId and additional options', () => {
-            let root;
-
-            before(async () => {
-                const roots = await Tag.fetchRoots();
-                root = roots[Math.floor(Math.random() * roots.length)];
-            });
-
-            describe('Add real rgt to where', () => {
-                it('We got a tree only with selected rootId, with several levels starting from root', async () => {
-                    const tree = await Tag.fetchTree(0, root.rootId, {
-                        where: {
-                            rgt: {
-                                [Op.lte]: root.rgt,
-                            },
-                        },
-                    });
-                    const levels = helpers.getCountOfNodesPerLevel(tree);
-                    const keys = Object.keys(levels);
-                    keys.sort();
-
-                    tree.forEach((node) => {
-                        expect(node.rootId).to.be.equal(root.rootId);
-                    });
-                    expect(keys.length > 1).to.be.true;
-                    expect(keys[keys.length - 1] > 1).to.be.true;
-                    expect(tree[0].isRoot()).to.be.true;
-                });
-            });
-
-            describe('Add impossible rgt clause to where', () => {
-                it('It returns nothing (empty array)', async () => {
-                    const tree = await Tag.fetchTree(0, root.rootId, {
-                        where: {
-                            rgt: {
-                                [Op.gt]: root.rgt, // impossible
-                            },
-                        },
-                    });
-
-                    expect(tree).to.be.an('array').that.is.empty;
-                });
-            });
-        });
-
-        describe('Call with depth = 1 (only root and 1st level nodes), selected rootId and additional options', () => {
-            let tree = [];
-            let levels = {}; // {level: count of nodes}
-            let root;
-
-            before(async () => {
-                const roots = await Tag.fetchRoots();
-                root = roots[Math.floor(Math.random() * roots.length)];
-            });
-
-            describe('Add real rgt to where', () => {
-                it('We got a tree only with selected rootId, only 2 levels, the greatest level is 1', async () => {
-                    tree = await Tag.fetchTree(1, root.rootId, {
-                        where: {
-                            rgt: {
-                                [Op.lte]: root.rgt,
-                            },
-                        },
-                    });
-                    levels = helpers.getCountOfNodesPerLevel(tree);
-                    const keys = Object.keys(levels);
-                    keys.sort();
-                    tree.forEach((node) => {
-                        expect(node.rootId).to.be.equal(root.rootId);
-                    });
-                    expect(keys.length).to.be.equal(2);
-                    expect(parseInt(keys[keys.length - 1], 10)).to.be.equal(1);
-                    expect(tree[0].isRoot()).to.be.true;
-                });
-            });
-
-            describe('Add impossible rgt clause to where', () => {
-                it('We got nothing (empty array)', async () => {
-                    tree = await Tag.fetchTree(1, root.rootId, {
-                        where: {
-                            rgt: {
-                                [Op.gt]: root.rgt, // impossible
-                            },
-                        },
-                    });
-                    expect(tree).to.be.an('array').that.is.empty;
-                });
-            });
-        });
-    });
-
-    describe('#fetchRoots()', () => {
-        describe('Call without options', () => {
-            it('We get all roots', async () => {
-                const roots = await Tag.fetchRoots();
-
-                expect(roots).to.be.an('array');
-                expect(roots.length > 1).to.be.true;
-                roots.forEach((node) => {
-                    expect(node.isRoot()).to.be.true
-                });
-            });
-        });
-        describe('Call with options', () => {
-            describe('Add real rgt to where', () => {
-                it('We got all root nodes', async () => {
-                    const roots = await Tag.fetchRoots({
-                        where: {
-                            rgt: {
-                                [Op.gte]: 1,
-                            },
-                        },
-                    });
-
-                    expect(roots).to.be.an('array');
-                    expect(roots.length > 1).to.be.true;
-                    roots.forEach((node) => {
-                        expect(node.isRoot()).to.be.true
-                    });
-                });
-            });
-
-            describe('Add impossible rgt clause to where', () => {
-                it('It returns nothing (empty array)', async () => {
-                    const roots = await Tag.fetchRoots({
-                        where: {
-                            rgt: {
-                                [Op.lt]: 1,
-                            },
-                        },
-                    });
-
-                    expect(roots).to.be.an('array').that.is.empty;
-                });
-            });
-        });
-    });
-
-    describe('#hasPrevSibling()', () => {
-        describe('For tag with previous siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(LAST);
-            });
-
-            describe('Call without options', () => {
-                it('It returns true', async () => {
-                    expect(await tag.hasPrevSibling()).to.be.true;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns true', async () => {
-                        const result = await tag.hasPrevSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.true;
+                        expect(tag.isRoot()).to.be.true;
+                        expect(tag.id).to.be.equal(tag.rootId);
                     });
                 });
 
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasPrevSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
+                describe('Get root node with selected rootId', () => {
+                    it('The gotten node is root and equal to the root from fetchRoots()', async () => {
+                        const roots = await Tag.fetchRoots();
+                        const root = roots[Math.floor(Math.random() * roots.length)];
+                        tag = await Tag.fetchRoot(root.rootId);
 
-        describe('For tag with next siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(FIRST);
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.hasPrevSibling()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasPrevSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
+                        expect(tag.isRoot()).to.be.true;
+                        expect(tag.id).to.be.equal(tag.rootId);
+                        expect(tag.isEqualTo(root)).to.be.true;
                     });
                 });
 
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasPrevSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
+                describe('Get root node with selected rootId and additional options', () => {
+                    let root;
 
-        describe('For tag without siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(ALONE);
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.hasPrevSibling()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasPrevSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasPrevSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#hasNextSibling()', () => {
-        describe('For tag with previous siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(FIRST);
-            });
-
-            describe('Call without options', () => {
-                it('It returns true', async () => {
-                    expect(await tag.hasNextSibling()).to.be.true;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns true', async () => {
-                        const result = await tag.hasNextSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.true;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasNextSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag with next siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(LAST);
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.hasNextSibling()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasNextSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasNextSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag without siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(ALONE);
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.hasNextSibling()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasNextSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.hasNextSibling({
-                            where: {
-                                id: tag.id
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#hasChildren()', () => {
-        describe('For tag with children', () => {
-            it('It returns true', async () => {
-                const tag = await Tag.findOne({
-                    where: {
-                        rgt: {
-                            [Op.gt]: sequelize.literal(`lft + 1`),
-                        },
-                    },
-                });
-                expect(await tag.hasChildren()).to.be.true;
-            });
-        });
-
-        describe('For tag without children', () => {
-            it('It returns false', async () => {
-                const tag = await Tag.findOne({
-                    where: {
-                        rgt: {
-                            [Op.eq]: sequelize.literal(`lft + 1`),
-                        },
-                    },
-                });
-                expect(await tag.hasChildren()).to.be.false;
-            });
-        });
-    });
-
-    describe('#hasParent()', () => {
-        describe('For tag with parents', () => {
-            it('It returns true', async () => {
-                const tag = await Tag.findOne({
-                    where: {
-                        lft: {
-                            [Op.gt]: 1,
-                        },
-                    },
-                });
-                expect(await tag.hasParent()).to.be.true;
-            });
-        });
-
-        describe('For tag without parents', () => {
-            it('It returns false', async () => {
-                const tag = await Tag.findOne({
-                    where: {
-                        lft: 1,
-                    },
-                });
-                expect(await tag.hasParent()).to.be.false;
-            });
-        });
-    });
-
-    describe('#getPrevSibling()', () => {
-        describe('For tag with previous siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(LAST);
-            });
-
-            describe('Call without options', () => {
-                it('It returns valid node which is previous sibling', async () => {
-                    const sibling = await tag.getPrevSibling();
-                    expect(tag.isValidNode(sibling)).to.be.true;
-                    expect(sibling.rootId).to.be.equal(tag.rootId);
-                    expect(sibling.lft).to.be.below(tag.lft);
-                    expect(sibling.rgt).to.be.below(tag.rgt);
-                    const parent = tag.getParent();
-                    const siblingParent = sibling.getParent();
-                    expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns valid node which is sibling', async () => {
-                        const sibling = await tag.getPrevSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(tag.isValidNode(sibling)).to.be.true;
-                        expect(sibling.rootId).to.be.equal(tag.rootId);
-                        expect(sibling.lft).to.be.below(tag.lft);
-                        expect(sibling.rgt).to.be.below(tag.rgt);
-                        const parent = tag.getParent();
-                        const siblingParent = sibling.getParent();
-                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getPrevSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag with next siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(FIRST);
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getPrevSibling()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getPrevSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getPrevSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag without siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(ALONE);
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getPrevSibling()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getPrevSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getPrevSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#getNextSibling()', () => {
-        describe('For tag with next siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(FIRST);
-            });
-
-            describe('Call without options', () => {
-                it('It returns valid node which is sibling', async () => {
-                    const sibling = await tag.getNextSibling();
-                    expect(tag.isValidNode(sibling)).to.be.true;
-                    expect(sibling.rootId).to.be.equal(tag.rootId);
-                    expect(sibling.lft).to.be.above(tag.lft);
-                    expect(sibling.rgt).to.be.above(tag.rgt);
-                    const parent = tag.getParent();
-                    const siblingParent = sibling.getParent();
-                    expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns valid node which is sibling', async () => {
-                        const sibling = await tag.getNextSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(tag.isValidNode(sibling)).to.be.true;
-                        expect(sibling.rootId).to.be.equal(tag.rootId);
-                        expect(sibling.lft).to.be.above(tag.lft);
-                        expect(sibling.rgt).to.be.above(tag.rgt);
-                        const parent = tag.getParent();
-                        const siblingParent = sibling.getParent();
-                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getNextSibling({
-                            where: {
-                                id: tag.id
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag with previous siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(LAST);
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getNextSibling()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getNextSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getNextSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag without siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(ALONE);
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getNextSibling()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getNextSibling({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getNextSibling({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#getSiblings()', () => {
-        describe('For tag with siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(FIRST);
-            });
-
-            describe('Call with default params', () => {
-                it('It returns a list with valid sibling nodes without current one', async () => {
-                    const siblings = await tag.getSiblings();
-                    expect(siblings).to.be.an('array');
-                    const parent = tag.getParent();
-                    siblings.forEach((sibling) => {
-                        expect(tag.isValidNode(sibling)).to.be.true;
-                        expect(sibling.id).to.be.not.equal(tag.id);
-                        expect(sibling.rootId).to.be.equal(tag.rootId);
-                        expect(sibling.rgt < tag.lft || sibling.lft > tag.rgt).to.be.true;
-                        const siblingParent = sibling.getParent();
-                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
-                    });
-                });
-            });
-
-            describe('Call withCurrentNode = true', () => {
-                it('It returns a list with valid sibling nodes including current node', async () => {
-                    const siblings = await tag.getSiblings(true);
-                    expect(siblings).to.be.an('array');
-                    let hasCurrent = false;
-                    const parent = tag.getParent();
-                    siblings.forEach((sibling) => {
-                        expect(tag.isValidNode(sibling)).to.be.true;
-                        expect(sibling.rootId).to.be.equal(tag.rootId);
-                        const siblingParent = sibling.getParent();
-                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
-
-                        if (!hasCurrent && sibling.id == tag.id) {
-                            hasCurrent = true;
+                    before(async () => {
+                        const roots = await Tag.fetchRoots();
+                        let i = 0;
+                        do {
+                            root = roots[i];
+                        } while (parseInt(root.rootId) === 1 && ++i < roots.length);
+                        if (parseInt(root.rootId) === 1) {
+                            console.warn('There is no root nodes with rootId not equal to 1');
                         }
                     });
-                    expect(hasCurrent).to.be.true;
-                });
-            });
 
-            describe('Call withCurrentNode = false and possible where in options', () => {
-                it('It returns a list with valid sibling nodes without current node', async () => {
-                    const siblings = await tag.getSiblings(false, {
-                        where: {
-                            rootId: tag.rootId
-                        }
-                    });
-                    expect(siblings).to.be.an('array');
-                    const parent = tag.getParent();
-                    siblings.forEach((sibling) => {
-                        expect(tag.isValidNode(sibling)).to.be.true;
-                        expect(sibling.id).to.be.not.equal(tag.id);
-                        expect(sibling.rootId).to.be.equal(tag.rootId);
-                        expect(sibling.rgt < tag.lft || sibling.lft > tag.rgt).to.be.true;
-                        const siblingParent = sibling.getParent();
-                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
-                    });
-                });
-            });
-
-            describe('Call withCurrentNode = true and possible where in options', () => {
-                it('It returns a list with valid sibling nodes including current node', async () => {
-                    const siblings = await tag.getSiblings(true, {
-                        where: {
-                            rootId: tag.rootId
-                        }
-                    });
-                    expect(siblings).to.be.an('array');
-                    let hasCurrent = false;
-                    const parent = tag.getParent();
-                    siblings.forEach((sibling) => {
-                        expect(tag.isValidNode(sibling)).to.be.true;
-                        expect(sibling.rootId).to.be.equal(tag.rootId);
-                        const siblingParent = sibling.getParent();
-                        expect(parent && parent.id).to.be.equal(siblingParent && siblingParent.id);
-
-                        if (!hasCurrent && sibling.id == tag.id) {
-                            hasCurrent = true;
-                        }
-                    });
-                    expect(hasCurrent).to.be.true;
-                });
-            });
-
-            describe('Call withCurrentNode = false and impossible where in options', () => {
-                it('It returns an empty array', async () => {
-                    const result = await tag.getSiblings(false, {
-                        where: {
-                            id: -tag.id
-                        }
-                    });
-                    expect(result).to.be.an('array');
-                    expect(result).to.be.empty;
-                });
-            });
-
-            describe('Call withCurrentNode = true and impossible where in options', () => {
-                it('It returns an array with only one node - current', async () => {
-                    const siblings = await tag.getSiblings(true, {
-                        where: {
-                            id: -tag.id
-                        }
-                    });
-                    expect(siblings).to.be.an('array');
-                    expect(siblings.length === 1).to.be.true;
-                    expect(tag.isEqualTo(siblings[0])).to.be.true;
-                });
-            });
-        });
-
-        describe('For tag without siblings', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingSiblings(ALONE);
-            });
-
-            describe('Call with default params', () => {
-                it('It returns an empty array', async () => {
-                    const result = await tag.getSiblings();
-                    expect(result).to.be.an('array');
-                    expect(result).to.be.empty;
-                });
-            });
-        });
-    });
-
-    describe('#getFirstChild()', () => {
-        describe('For tag with several children', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingChildren(MANY);
-            });
-
-            describe('Call without options', () => {
-                it('It returns valid first child node', async () => {
-                    const child = await tag.getFirstChild();
-                    expect(tag.isValidNode(child)).to.be.true;
-                    expect(child.rootId).to.be.equal(tag.rootId);
-                    expect(child.lft - 1).to.be.equal(tag.lft);
-                    expect(child.rgt).to.be.below(tag.rgt);
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns valid first child node', async () => {
-                        const child = await tag.getFirstChild({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
+                    describe('Add real rgt to where', () => {
+                        it('The gotten node is root and equal to the root from fetchRoots()', async () => {
+                            tag = await Tag.fetchRoot(root.rootId, {
+                                where: {
+                                    rgt: root.rgt,
                                 },
-                            },
+                            });
+
+                            expect(tag).to.be.instanceOf(Tag);
+                            expect(tag.isRoot()).to.be.true;
+                            expect(tag.isEqualTo(root)).to.be.true;
                         });
-                        expect(tag.isValidNode(child)).to.be.true;
-                        expect(child.rootId).to.be.equal(tag.rootId);
-                        expect(child.lft - 1).to.be.equal(tag.lft);
-                        expect(child.rgt).to.be.below(tag.rgt);
                     });
-                });
 
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getFirstChild({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag with one child', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingChildren(ONE);
-            });
-
-            describe('Call without options', () => {
-                it('It returns a valid child node', async () => {
-                    const child = await tag.getFirstChild();
-                    expect(tag.isValidNode(child)).to.be.true;
-                    expect(child.rootId).to.be.equal(tag.rootId);
-                    expect(child.lft - 1).to.be.equal(tag.lft);
-                    expect(child.rgt).to.be.below(tag.rgt);
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns a valid child node', async () => {
-                        const child = await tag.getFirstChild({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
+                    describe('Add unreal rgt to where', () => {
+                        it('We got nothing', async () => {
+                            tag = await Tag.fetchRoot(root.rootId, {
+                                where: {
+                                    rgt: root.rgt - root.lft,
                                 },
-                            },
-                        });
-                        expect(tag.isValidNode(child)).to.be.true;
-                        expect(child.rootId).to.be.equal(tag.rootId);
-                        expect(child.lft - 1).to.be.equal(tag.lft);
-                        expect(child.rgt).to.be.below(tag.rgt);
-                    });
-                });
+                            });
 
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getFirstChild({
-                            where: {
-                                id: tag.id,
-                            },
+                            expect(tag).to.be.false;
                         });
-                        expect(result).to.be.false;
                     });
                 });
             });
-        });
 
-        describe('For tag without children', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagWithoutChildren();
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getFirstChild()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getFirstChild({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getFirstChild({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#getLastChild()', () => {
-        describe('For tag with several children', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingChildren(MANY);
-            });
-
-            describe('Call without options', () => {
-                it('It returns valid last child node', async () => {
-                    const child = await tag.getLastChild();
-                    expect(tag.isValidNode(child)).to.be.true;
-                    expect(child.rootId).to.be.equal(tag.rootId);
-                    expect(child.rgt + 1).to.be.equal(tag.rgt);
-                    expect(child.lft).to.be.above(tag.lft);
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns valid last child node', async () => {
-                        const child = await tag.getLastChild({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(tag.isValidNode(child)).to.be.true;
-                        expect(child.rootId).to.be.equal(tag.rootId);
-                        expect(child.rgt + 1).to.be.equal(tag.rgt);
-                        expect(child.lft).to.be.above(tag.lft);
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getLastChild({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag with one child', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingChildren(ONE);
-            });
-
-            describe('Call without options', () => {
-                it('It returns a valid child node', async () => {
-                    const child = await tag.getLastChild();
-                    expect(tag.isValidNode(child)).to.be.true;
-                    expect(child.rootId).to.be.equal(tag.rootId);
-                    expect(child.lft - 1).to.be.equal(tag.lft);
-                    expect(child.rgt).to.be.equal(tag.rgt - 1);
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns a valid child node', async () => {
-                        const child = await tag.getLastChild({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(tag.isValidNode(child)).to.be.true;
-                        expect(child.rootId).to.be.equal(tag.rootId);
-                        expect(child.lft - 1).to.be.equal(tag.lft);
-                        expect(child.rgt).to.be.equal(tag.rgt - 1);
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getLastChild({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag without children', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagWithoutChildren();
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getLastChild()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real id to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getLastChild({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible id clause to where', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getLastChild({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#getChildren', () => {
-        describe('For tag with several children', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingChildren(MANY);
-            });
-
-            describe('Call without options', () => {
-                it('It returns valid children', async () => {
-                    const children = await tag.getChildren();
-                    const levels = helpers.getCountOfNodesPerLevel(children);
-                    const keys = Object.keys(levels);
-
-                    expect(keys.length).to.be.equal(1);
-                    expect(children.length > 1).to.be.true;
-                    children.forEach((child) => {
-                        expect(tag.isValidNode(child));
-                        expect(child.isDescendantOf(tag));
-                    });
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real where clause', () => {
-                    it('It returns valid children', async () => {
-                        const children = await tag.getChildren({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        const levels = helpers.getCountOfNodesPerLevel(children);
+            describe('#fetchTree()', () => {
+                describe('Call with depth = 0 (full tree)', () => {
+                    it('We got a tree with several levels, where the greatest level is greater than 1, the first node is root', async () => {
+                        const tree = await Tag.fetchTree(0);
+                        const levels = helpers.getCountOfNodesPerLevel(tree);
                         const keys = Object.keys(levels);
-
-                        expect(keys.length).to.be.equal(1);
-                        expect(children.length > 1).to.be.true;
-                        children.forEach((child) => {
-                            expect(tag.isValidNode(child));
-                            expect(child.isDescendantOf(tag));
-                        });
-                    });
-                });
-
-                describe('Add impossible where clause', () => {
-                    it('It returns empty array', async () => {
-                        const result = await tag.getChildren({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.an('array').empty;
-                    });
-                });
-            });
-        });
-
-        describe('For tag with one child', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingChildren(ONE);
-            });
-
-            describe('Call without options', () => {
-                it('It returns an array with one child', async () => {
-                    const children = await tag.getChildren();
-                    const levels = helpers.getCountOfNodesPerLevel(children);
-                    const keys = Object.keys(levels);
-
-                    expect(keys.length).to.be.equal(1);
-                    expect(children.length).to.be.equal(1);
-                    children.forEach((child) => {
-                        expect(tag.isValidNode(child));
-                        expect(child.isDescendantOf(tag));
-                    });
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real where clause', () => {
-                    it('It returns an array with one child', async () => {
-                        const children = await tag.getChildren({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        const levels = helpers.getCountOfNodesPerLevel(children);
-                        const keys = Object.keys(levels);
-
-                        expect(keys.length).to.be.equal(1);
-                        expect(children.length).to.be.equal(1);
-                        children.forEach((child) => {
-                            expect(tag.isValidNode(child));
-                            expect(child.isDescendantOf(tag));
-                        });
-                    });
-                });
-
-                describe('Add impossible where clause', () => {
-                    it('It returns empty array', async () => {
-                        const result = await tag.getChildren({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.an('array').empty;
-                    });
-                });
-            });
-        });
-
-        describe('For tag without children', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagWithoutChildren();
-            });
-
-            describe('Call without options', () => {
-                it('It returns empty array', async () => {
-                    expect(await tag.getChildren()).to.be.an('array').empty;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real where clause', () => {
-                    it('It returns empty array', async () => {
-                        const result = await tag.getChildren({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.an('array').empty;
-                    });
-                });
-
-                describe('Add impossible where clause', () => {
-                    it('It returns empty array', async () => {
-                        const result = await tag.getChildren({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.an('array').empty;
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#getDescendants', () => {
-        describe('For tag with several descendants', () => {
-            let tag;
-            before(async () => {
-                const roots = await Tag.fetchRoots();
-                for (let i = 0; i < roots.length; i++) {
-                    tag = roots[i];
-                    const tree = await Tag.fetchTree(0, roots[i].rootId);
-                    const levels = helpers.getCountOfNodesPerLevel(tree);
-                    const keys = Object.keys(levels);
-                    if (keys.length > 1) {
-                        break;
-                    }
-                }
-            });
-
-            describe('Call without params', () => {
-                it('It returns all descendants', async () => {
-                    const newTree = await tag.getDescendants();
-                    const levels = helpers.getCountOfNodesPerLevel(newTree);
-                    const keys = Object.keys(levels);
-
-                    expect(keys.length > 1).to.be.true;
-                    newTree.forEach((node) => {
-                        expect(tag.isValidNode(node));
-                        expect(node.isDescendantOf(tag));
-                    });
-                });
-            });
-            describe('Call with depth = 1', () => {
-                it('It returns only direct children', async () => {
-                    const newTree = await tag.getDescendants(1);
-                    const levels = helpers.getCountOfNodesPerLevel(newTree);
-                    const keys = Object.keys(levels);
-
-                    expect(keys.length).to.be.equal(1);
-                    newTree.forEach((node) => {
-                        expect(tag.isValidNode(node));
-                        expect(node.isDescendantOf(tag));
-                    });
-                });
-            });
-            describe('Call with depth = 0 and options', () => {
-                describe('Add real where clause', () => {
-                    it('It returns valid descendants', async () => {
-                        const newTree = await tag.getDescendants(0, {
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        const levels = helpers.getCountOfNodesPerLevel(newTree);
-                        const keys = Object.keys(levels);
+                        keys.sort();
 
                         expect(keys.length > 1).to.be.true;
-                        newTree.forEach((node) => {
-                            expect(tag.isValidNode(node));
-                            expect(node.isDescendantOf(tag));
-                        });
+                        expect(keys[keys.length - 1] > 1).to.be.true;
+                        expect(tree[0].isRoot()).to.be.true;
                     });
                 });
 
-                describe('Add impossible where clause', () => {
-                    it('It returns empty array', async () => {
-                        const result = await tag.getDescendants(0, {
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.an('array').empty;
-                    });
-                });
-            });
-        });
+                describe('Call with depth = 1 (only root and 1st level nodes)', () => {
+                    it('We got a tree with only 2 levels, where the greatest level is 1, the first node is root', async () => {
+                        const tree = await Tag.fetchTree(1);
+                        const levels = helpers.getCountOfNodesPerLevel(tree);
+                        const keys = Object.keys(levels);
+                        keys.sort();
 
-        describe('For tag without descendants', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagWithoutChildren();
-            });
-
-            describe('Call without params', () => {
-                it('It returns empty array', async () => {
-                    expect(await tag.getDescendants()).to.be.an('array').empty;
-                });
-            });
-            describe('Call with depth = 1', () => {
-                it('It returns empty array', async () => {
-                    expect(await tag.getDescendants(1)).to.be.an('array').empty;
-                });
-            });
-            describe('Call with depth = 0 and options', () => {
-                describe('Add real where clause', () => {
-                    it('It returns empty array', async () => {
-                        const result = await tag.getDescendants(0, {
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.an('array').empty;
+                        expect(keys.length).to.be.equal(2);
+                        expect(parseInt(keys[keys.length - 1], 10)).to.be.equal(1);
+                        expect(tree[0].isRoot()).to.be.true;
                     });
                 });
 
-                describe('Add impossible where clause', () => {
-                    it('It returns empty array', async () => {
-                        const result = await tag.getDescendants(0, {
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.an('array').empty;
-                    });
-                });
-            });
-        });
-    });
+                describe('Call with depth = 0 (full tree) and selected rootId', () => {
+                    it('We got a tree only with selected rootId, with several levels starting from root', async () => {
+                        const roots = await Tag.fetchRoots();
+                        const rootId = roots[Math.floor(Math.random() * roots.length)].rootId;
+                        const tree = await Tag.fetchTree(0, rootId);
+                        const levels = helpers.getCountOfNodesPerLevel(tree);
+                        const keys = Object.keys(levels);
+                        keys.sort();
 
-    describe('#getParent', () => {
-        describe('For tag with parent', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagWithAncestors(MANY);
-            });
-
-            describe('Call without options', () => {
-                it('It returns valid parent node', async () => {
-                    const parent = await tag.getParent();
-
-                    expect(tag.isValidNode(parent)).to.be.true;
-                    expect(parent.isAncestorOf(tag)).to.be.true;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real where clause', () => {
-                    it('It returns valid parent node', async () => {
-                        const parent = await tag.getParent({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-
-                        expect(tag.isValidNode(parent)).to.be.true;
-                        expect(parent.isAncestorOf(tag)).to.be.true;
-                    });
-                });
-
-                describe('Add impossible where clause', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getParent({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-
-        describe('For tag without parent (root node)', () => {
-            let tag;
-            before(async () => {
-                tag = await Tag.fetchRoot();
-            });
-
-            describe('Call without options', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getParent()).to.be.false;
-                });
-            });
-            describe('Call with options', () => {
-                describe('Add real where clause', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getParent({
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-
-                describe('Add impossible where clause', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getParent({
-                            where: {
-                                id: tag.id,
-                            },
-                        });
-                        expect(result).to.be.false;
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#getAncestors', () => {
-        describe('For tag with several ancestors', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagWithAncestors(MANY);
-            });
-
-            describe('Call without params', () => {
-                it('It returns all ancestors', async () => {
-                    const ancestors = await tag.getAncestors();
-
-                    ancestors.forEach((node) => {
-                        expect(tag.isValidNode(node));
-                        expect(node.isAncestorOf(tag));
-                    });
-
-                    const tree = await Tag.fetchTree(0, tag.rootId);
-                    const realAncestors = [];
-                    tree.forEach((node) => {
-                        if (node.isAncestorOf(tag)) {
-                            realAncestors.push(node);
-                        }
-                    });
-                    expect(ancestors.length).to.be.equal(realAncestors.length);
-                });
-            });
-            describe('Call with depth = 1', () => {
-                it('It returns only a parent', async () => {
-                    const ancestors = await tag.getAncestors(1);
-
-                    expect(ancestors.length).to.be.equal(1);
-                    await Promise.all(ancestors.map(async (node) => {
-                        const children = await node.getChildren();
-                        let isChecked = false;
-                        children.forEach((child) => {
-                            if (tag.isEqualTo(child)) {
-                                isChecked = true;
-                            }
-                        })
-                        expect(isChecked).to.be.true;
-                        expect(tag.isValidNode(node));
-                        expect(node.isAncestorOf(tag));
-                    }));
-                });
-            });
-            describe('Call with depth = 0 and options', () => {
-                describe('Add real where clause', () => {
-                    it('It returns valid ancestors', async () => {
-                        const ancestors = await tag.getAncestors(0, {
-                            where: {
-                                id: {
-                                    [Op.ne]: tag.id,
-                                },
-                            },
-                        });
-
-                        ancestors.forEach((node) => {
-                            expect(tag.isValidNode(node));
-                            expect(node.isAncestorOf(tag));
-                        });
-
-                        const tree = await Tag.fetchTree(0, tag.rootId);
-                        const realAncestors = [];
                         tree.forEach((node) => {
-                            if (node.isAncestorOf(tag)) {
-                                realAncestors.push(node);
-                            }
+                            expect(node.rootId).to.be.equal(rootId);
                         });
-                        expect(ancestors.length).to.be.equal(realAncestors.length);
+                        expect(keys.length > 1).to.be.true;
+                        expect(keys[keys.length - 1] > 1).to.be.true;
+                        expect(tree[0].isRoot()).to.be.true;
                     });
                 });
 
-                describe('Add impossible where clause', () => {
-                    it('It returns empty array', async () => {
-                        const result = await tag.getAncestors(0, {
-                            where: {
-                                id: tag.id,
-                            },
+                describe('Call with depth = 1 (only root and 1st level nodes) and selected rootId', () => {
+                    it('We got a tree only with selected rootId, where nodes from root and first levels', async () => {
+                        const roots = await Tag.fetchRoots();
+                        const rootId = roots[Math.floor(Math.random() * roots.length)].rootId;
+                        const tree = await Tag.fetchTree(1, rootId);
+                        const levels = helpers.getCountOfNodesPerLevel(tree);
+                        const keys = Object.keys(levels);
+                        keys.sort();
+
+                        tree.forEach((node) => {
+                            expect(node.rootId).to.be.equal(rootId);
                         });
-                        expect(result).to.be.an('array').empty;
+                        expect(keys.length).to.be.equal(2);
+                        expect(parseInt(keys[keys.length - 1], 10)).to.be.equal(1);
+                        expect(tree[0].isRoot()).to.be.true;
+                    });
+                });
+
+                describe('Call with depth = 0 (full tree), selected rootId and additional options', () => {
+                    let root;
+
+                    before(async () => {
+                        const roots = await Tag.fetchRoots();
+                        root = roots[Math.floor(Math.random() * roots.length)];
+                    });
+
+                    describe('Add real rgt to where', () => {
+                        it('We got a tree only with selected rootId, with several levels starting from root', async () => {
+                            const tree = await Tag.fetchTree(0, root.rootId, {
+                                where: {
+                                    rgt: {
+                                        [Op.lte]: root.rgt,
+                                    },
+                                },
+                            });
+                            const levels = helpers.getCountOfNodesPerLevel(tree);
+                            const keys = Object.keys(levels);
+                            keys.sort();
+
+                            tree.forEach((node) => {
+                                expect(node.rootId).to.be.equal(root.rootId);
+                            });
+                            expect(keys.length > 1).to.be.true;
+                            expect(keys[keys.length - 1] > 1).to.be.true;
+                            expect(tree[0].isRoot()).to.be.true;
+                        });
+                    });
+
+                    describe('Add impossible rgt clause to where', () => {
+                        it('It returns nothing (empty array)', async () => {
+                            const tree = await Tag.fetchTree(0, root.rootId, {
+                                where: {
+                                    rgt: {
+                                        [Op.gt]: root.rgt, // impossible
+                                    },
+                                },
+                            });
+
+                            expect(tree).to.be.an('array').that.is.empty;
+                        });
+                    });
+                });
+
+                describe('Call with depth = 1 (only root and 1st level nodes), selected rootId and additional options', () => {
+                    let tree = [];
+                    let levels = {}; // {level: count of nodes}
+                    let root;
+
+                    before(async () => {
+                        const roots = await Tag.fetchRoots();
+                        root = roots[Math.floor(Math.random() * roots.length)];
+                    });
+
+                    describe('Add real rgt to where', () => {
+                        it('We got a tree only with selected rootId, only 2 levels, the greatest level is 1', async () => {
+                            tree = await Tag.fetchTree(1, root.rootId, {
+                                where: {
+                                    rgt: {
+                                        [Op.lte]: root.rgt,
+                                    },
+                                },
+                            });
+                            levels = helpers.getCountOfNodesPerLevel(tree);
+                            const keys = Object.keys(levels);
+                            keys.sort();
+                            tree.forEach((node) => {
+                                expect(node.rootId).to.be.equal(root.rootId);
+                            });
+                            expect(keys.length).to.be.equal(2);
+                            expect(parseInt(keys[keys.length - 1], 10)).to.be.equal(1);
+                            expect(tree[0].isRoot()).to.be.true;
+                        });
+                    });
+
+                    describe('Add impossible rgt clause to where', () => {
+                        it('We got nothing (empty array)', async () => {
+                            tree = await Tag.fetchTree(1, root.rootId, {
+                                where: {
+                                    rgt: {
+                                        [Op.gt]: root.rgt, // impossible
+                                    },
+                                },
+                            });
+                            expect(tree).to.be.an('array').that.is.empty;
+                        });
                     });
                 });
             });
-        });
 
-        describe('For tag without ancestors', () => {
-            let tag;
-            before(async () => {
-                const tags = await Tag.fetchRoots();
-                tag = tags[0];
-            });
+            describe('#fetchRoots()', () => {
+                describe('Call without options', () => {
+                    it('We get all roots', async () => {
+                        const roots = await Tag.fetchRoots();
 
-            describe('Call without params', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getAncestors()).to.be.false;
+                        expect(roots).to.be.an('array');
+                        expect(roots.length > 1).to.be.true;
+                        roots.forEach((node) => {
+                            expect(node.isRoot()).to.be.true
+                        });
+                    });
+                });
+                describe('Call with options', () => {
+                    describe('Add real rgt to where', () => {
+                        it('We got all root nodes', async () => {
+                            const roots = await Tag.fetchRoots({
+                                where: {
+                                    rgt: {
+                                        [Op.gte]: 1,
+                                    },
+                                },
+                            });
+
+                            expect(roots).to.be.an('array');
+                            expect(roots.length > 1).to.be.true;
+                            roots.forEach((node) => {
+                                expect(node.isRoot()).to.be.true
+                            });
+                        });
+                    });
+
+                    describe('Add impossible rgt clause to where', () => {
+                        it('It returns nothing (empty array)', async () => {
+                            const roots = await Tag.fetchRoots({
+                                where: {
+                                    rgt: {
+                                        [Op.lt]: 1,
+                                    },
+                                },
+                            });
+
+                            expect(roots).to.be.an('array').that.is.empty;
+                        });
+                    });
                 });
             });
-            describe('Call with depth = 1', () => {
-                it('It returns false', async () => {
-                    expect(await tag.getAncestors(1)).to.be.false;
+
+            describe('#hasPrevSibling()', () => {
+                describe('For tag with previous siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(LAST);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns true', async () => {
+                            expect(await tag.hasPrevSibling()).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns true', async () => {
+                                const result = await tag.hasPrevSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasPrevSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag with next siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(FIRST);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.hasPrevSibling()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasPrevSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasPrevSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(ALONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.hasPrevSibling()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasPrevSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasPrevSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
                 });
             });
-            describe('Call with depth = 0 and options', () => {
-                describe('Add real where clause', () => {
+
+            describe('#hasNextSibling()', () => {
+                describe('For tag with previous siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(FIRST);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns true', async () => {
+                            expect(await tag.hasNextSibling()).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns true', async () => {
+                                const result = await tag.hasNextSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasNextSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag with next siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(LAST);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.hasNextSibling()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasNextSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasNextSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(ALONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.hasNextSibling()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasNextSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.hasNextSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+            });
+
+            describe('#hasChildren()', () => {
+                describe('For tag with children', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        expect(await tag.hasChildren()).to.be.true;
+                    });
+                });
+
+                describe('For tag without children', () => {
                     it('It returns false', async () => {
-                        const result = await tag.getAncestors(0, {
+                        const tag = await Tag.findOne({
                             where: {
-                                id: {
-                                    [Op.ne]: tag.id,
+                                rgt: {
+                                    [Op.eq]: sequelize.literal(`lft + 1`),
                                 },
                             },
                         });
-                        expect(result).to.be.false;
+                        expect(await tag.hasChildren()).to.be.false;
                     });
                 });
+            });
 
-                describe('Add impossible where clause', () => {
-                    it('It returns false', async () => {
-                        const result = await tag.getAncestors(0, {
+            describe('#hasParent()', () => {
+                describe('For tag with parents', () => {
+                    it('It returns true', async () => {
+                        const tag = await Tag.findOne({
                             where: {
-                                id: tag.id,
+                                lft: {
+                                    [Op.gt]: 1,
+                                },
                             },
                         });
-                        expect(result).to.be.false;
+                        expect(await tag.hasParent()).to.be.true;
+                    });
+                });
+
+                describe('For tag without parents', () => {
+                    it('It returns false', async () => {
+                        const tag = await Tag.findOne({
+                            where: {
+                                lft: 1,
+                            },
+                        });
+                        expect(await tag.hasParent()).to.be.false;
                     });
                 });
             });
-        });
-    });
 
-    describe('#addChild', () => {
-        describe('For tag with children', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagHavingChildren(MANY);
-            });
-
-            describe('Add new tag without options', () => {
-                it('It adds the child', async () => {
-                    const tagValue = 'new child 1';
-                    await tag.addChild(new Tag({
-                        label: tagValue,
-                    }));
-
-                    const child = await Tag.findOne({
-                        where: {
-                            label: tagValue,
-                        }
+            describe('#getPrevSibling()', () => {
+                describe('For tag with previous siblings', () => {
+                    let tag, parent;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(LAST);
+                        parent = await tag.getParent();
                     });
-                    await tag.reload();
 
-                    expect(tag.isValidNode(child)).to.be.true;
-                    expect(tag.isAncestorOf(child)).to.be.true;
+                    describe('Call without options', () => {
+                        it('It returns valid node which is sibling', async () => {
+                            const sibling = await tag.getPrevSibling();
+                            expect(tag.isValidNode(sibling)).to.be.true;
+                            const siblingParent = await sibling.getParent();
+                            expect(parent.isEqualTo(siblingParent)).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns valid node which is sibling', async () => {
+                                const sibling = await tag.getPrevSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(tag.isValidNode(sibling)).to.be.true;
+                                const siblingParent = await sibling.getParent();
+                                expect(parent.isEqualTo(siblingParent)).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getPrevSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag with next siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(FIRST);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getPrevSibling()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getPrevSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getPrevSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(ALONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getPrevSibling()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getPrevSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        }
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getPrevSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
                 });
             });
 
-            describe('Try to add existing tag without options', () => {
-                it('It throws an exception', async () => {
-                    const child = await Tag.findOne({
-                        where: {
-                            id: {
-                                [Op.ne]: tag.id,
+            describe('#getNextSibling()', () => {
+                describe('For tag with next siblings', () => {
+                    let tag, parent;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(FIRST);
+                        parent = await tag.getParent();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns valid node which is sibling', async () => {
+                            const sibling = await tag.getNextSibling();
+                            expect(tag.isValidNode(sibling)).to.be.true;
+                            const siblingParent = await sibling.getParent();
+                            expect(parent.isEqualTo(siblingParent)).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns valid node which is sibling', async () => {
+                                const sibling = await tag.getNextSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(tag.isValidNode(sibling)).to.be.true;
+                                const siblingParent = await sibling.getParent();
+                                expect(parent.isEqualTo(siblingParent)).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getNextSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag with previous siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(LAST);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getNextSibling()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getNextSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getNextSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(ALONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getNextSibling()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getNextSibling({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getNextSibling({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+            });
+
+            describe('#getSiblings()', () => {
+                describe('For tag with siblings', () => {
+                    let tag, parent;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(FIRST);
+                        parent = await tag.getParent();
+                    });
+
+                    describe('Call with default params', () => {
+                        it('It returns a list with valid sibling nodes without current one', async () => {
+                            const siblings = await tag.getSiblings();
+                            expect(siblings).to.be.an('array');
+                            await Promise.all(siblings.map(async (sibling) => {
+                                expect(tag.isValidNode(sibling)).to.be.true;
+                                expect(tag.isEqualTo(sibling)).to.be.false;
+                                const siblingParent = await sibling.getParent();
+                                expect(parent.isEqualTo(siblingParent)).to.be.true;
+                            }));
+                        });
+                    });
+
+                    describe('Call withCurrentNode = true', () => {
+                        it('It returns a list with valid sibling nodes with current node', async () => {
+                            const siblings = await tag.getSiblings(true);
+                            expect(siblings).to.be.an('array');
+                            let hasCurrent = false;
+                            await Promise.all(siblings.map(async (node) => {
+                                expect(tag.isValidNode(node)).to.be.true;
+                                const siblingParent = await node.getParent();
+                                expect(parent.isEqualTo(siblingParent)).to.be.true;
+
+                                if (!hasCurrent && tag.isEqualTo(node)) {
+                                    hasCurrent = true;
+                                }
+                            }));
+                            expect(hasCurrent).to.be.true;
+                        });
+                    });
+
+                    describe('Call withCurrentNode = false and possible where in options', () => {
+                        it('It returns a list with valid sibling nodes with current node', async () => {
+                            const siblings = await tag.getSiblings(false, {
+                                where: {
+                                    rootId: tag.rootId,
+                                },
+                            });
+                            expect(siblings).to.be.an('array');
+                            await Promise.all(siblings.map(async (node) => {
+                                expect(tag.isValidNode(node)).to.be.true;
+                                expect(tag.isEqualTo(node)).to.be.false;
+                                const siblingParent = await node.getParent();
+                                expect(parent.isEqualTo(siblingParent)).to.be.true;
+                            }));
+                        });
+                    });
+
+                    describe('Call withCurrentNode = true and possible where in options', () => {
+                        it('It returns a list with valid sibling nodes with current node', async () => {
+                            const siblings = await tag.getSiblings(true, {
+                                where: {
+                                    rootId: tag.rootId,
+                                },
+                            });
+                            expect(siblings).to.be.an('array');
+                            let hasCurrent = false;
+                            await Promise.all(siblings.map(async (node) => {
+                                expect(tag.isValidNode(node)).to.be.true;
+                                const siblingParent = await node.getParent();
+                                expect(parent.isEqualTo(siblingParent)).to.be.true;
+
+                                if (!hasCurrent && tag.isEqualTo(node)) {
+                                    hasCurrent = true;
+                                }
+                            }));
+                            expect(hasCurrent).to.be.true;
+                        });
+                    });
+
+                    describe('Call withCurrentNode = false and impossible where in options', () => {
+                        it('It returns an empty array', async () => {
+                            const result = await tag.getSiblings(false, {
+                                where: {
+                                    id: -tag.id,
+                                },
+                            });
+                            expect(result).to.be.an('array');
+                            expect(result).to.be.empty;
+                        });
+                    });
+
+                    describe('Call withCurrentNode = true and impossible where in options', () => {
+                        it('It returns an array with only one node - current', async () => {
+                            const siblings = await tag.getSiblings(true, {
+                                where: {
+                                    id: -tag.id,
+                                },
+                            });
+                            expect(siblings).to.be.an('array');
+                            expect(siblings.length).to.be.equal(1);
+                            expect(tag.isEqualTo(siblings[0])).to.be.true;
+                        });
+                    });
+                });
+
+                describe('For tag without siblings', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingSiblings(ALONE);
+                    });
+
+                    describe('Call with default params', () => {
+                        it('It returns an empty array', async () => {
+                            const result = await tag.getSiblings();
+                            expect(result).to.be.an('array');
+                            expect(result).to.be.empty;
+                        });
+                    });
+                });
+            });
+
+            describe('#getFirstChild()', () => {
+                describe('For tag with several children', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns valid first child node', async () => {
+                            const child = await tag.getFirstChild();
+                            expect(tag.isValidNode(child)).to.be.true;
+                            expect(child.rgt < tag.rgt && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns valid first child node', async () => {
+                                const child = await tag.getFirstChild({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(tag.isValidNode(child)).to.be.true;
+                                expect(child.rgt < tag.rgt && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getFirstChild({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag with one child', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingChildren(ONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns a valid child node', async () => {
+                            const child = await tag.getFirstChild();
+                            expect(tag.isValidNode(child)).to.be.true;
+                            expect(child.rgt < tag.rgt && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns a valid child node', async () => {
+                                const child = await tag.getFirstChild({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(tag.isValidNode(child)).to.be.true;
+                                expect(child.rgt < tag.rgt && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getFirstChild({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without children', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getFirstChild()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getFirstChild({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getFirstChild({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+            });
+
+            describe('#getLastChild()', () => {
+                describe('For tag with several children', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns valid last child node', async () => {
+                            const child = await tag.getLastChild();
+                            expect(tag.isValidNode(child)).to.be.true;
+                            expect(child.lft > tag.lft && child.rootId == tag.rootId && child.rgt + 1 == tag.rgt).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns valid last child node', async () => {
+                                const child = await tag.getLastChild({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(tag.isValidNode(child)).to.be.true;
+                                expect(child.lft > tag.lft && child.rootId == tag.rootId && child.rgt + 1 == tag.rgt).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getLastChild({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag with one child', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingChildren(ONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns a valid child node', async () => {
+                            const child = await tag.getLastChild();
+                            expect(tag.isValidNode(child)).to.be.true;
+                            expect(child.rgt + 1 == tag.rgt && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns a valid child node', async () => {
+                                const child = await tag.getLastChild({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(tag.isValidNode(child)).to.be.true;
+                                expect(child.rgt + 1 == tag.rgt && child.rootId == tag.rootId && child.lft - 1 == tag.lft).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getLastChild({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without children', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getLastChild()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real id to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getLastChild({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible id clause to where', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getLastChild({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
+            });
+
+            describe('#getChildren', () => {
+                describe('For tag with several children', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns valid children', async () => {
+                            const children = await tag.getChildren();
+                            const levels = helpers.getCountOfNodesPerLevel(children);
+                            const keys = Object.keys(levels);
+
+                            expect(keys.length).to.be.equal(1);
+                            expect(children.length > 1).to.be.true;
+                            children.forEach((child) => {
+                                expect(tag.isValidNode(child));
+                                expect(child.isDescendantOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns valid children', async () => {
+                                const children = await tag.getChildren({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                const levels = helpers.getCountOfNodesPerLevel(children);
+                                const keys = Object.keys(levels);
+
+                                expect(keys.length).to.be.equal(1);
+                                expect(children.length > 1).to.be.true;
+                                children.forEach((child) => {
+                                    expect(tag.isValidNode(child));
+                                    expect(child.isDescendantOf(tag));
+                                });
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns empty array', async () => {
+                                const result = await tag.getChildren({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.an('array').empty;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag with one child', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingChildren(ONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns an array with one child', async () => {
+                            const children = await tag.getChildren();
+                            const levels = helpers.getCountOfNodesPerLevel(children);
+                            const keys = Object.keys(levels);
+
+                            expect(keys.length).to.be.equal(1);
+                            expect(children.length).to.be.equal(1);
+                            children.forEach((child) => {
+                                expect(tag.isValidNode(child));
+                                expect(child.isDescendantOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns an array with one child', async () => {
+                                const children = await tag.getChildren({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                const levels = helpers.getCountOfNodesPerLevel(children);
+                                const keys = Object.keys(levels);
+
+                                expect(keys.length).to.be.equal(1);
+                                expect(children.length).to.be.equal(1);
+                                children.forEach((child) => {
+                                    expect(tag.isValidNode(child));
+                                    expect(child.isDescendantOf(tag));
+                                });
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns empty array', async () => {
+                                const result = await tag.getChildren({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.an('array').empty;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without children', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns empty array', async () => {
+                            expect(await tag.getChildren()).to.be.an('array').empty;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns empty array', async () => {
+                                const result = await tag.getChildren({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.an('array').empty;
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns empty array', async () => {
+                                const result = await tag.getChildren({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.an('array').empty;
+                            });
+                        });
+                    });
+                });
+            });
+
+            describe('#getDescendants', () => {
+                describe('For tag with several descendants', () => {
+                    let tag;
+                    before(async () => {
+                        const roots = await Tag.fetchRoots();
+                        for (let i = 0; i < roots.length; i++) {
+                            tag = roots[i];
+                            const tree = await Tag.fetchTree(0, roots[i].rootId);
+                            const levels = helpers.getCountOfNodesPerLevel(tree);
+                            const keys = Object.keys(levels);
+                            if (keys.length > 1) {
+                                break;
                             }
                         }
                     });
 
-                    // weird way to catch the async exception https://github.com/chaijs/chai/issues/415
-                    await tag.addChild(child).catch((err) => {
-                        expect(() => {throw err}).to.throw();
+                    describe('Call without params', () => {
+                        it('It returns all descendants', async () => {
+                            const newTree = await tag.getDescendants();
+                            const levels = helpers.getCountOfNodesPerLevel(newTree);
+                            const keys = Object.keys(levels);
+
+                            expect(keys.length > 1).to.be.true;
+                            newTree.forEach((node) => {
+                                expect(tag.isValidNode(node));
+                                expect(node.isDescendantOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with depth = 1', () => {
+                        it('It returns only direct children', async () => {
+                            const newTree = await tag.getDescendants(1);
+                            const levels = helpers.getCountOfNodesPerLevel(newTree);
+                            const keys = Object.keys(levels);
+
+                            expect(keys.length).to.be.equal(1);
+                            newTree.forEach((node) => {
+                                expect(tag.isValidNode(node));
+                                expect(node.isDescendantOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with depth = 0 and options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns valid descendants', async () => {
+                                const newTree = await tag.getDescendants(0, {
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                const levels = helpers.getCountOfNodesPerLevel(newTree);
+                                const keys = Object.keys(levels);
+
+                                expect(keys.length > 1).to.be.true;
+                                newTree.forEach((node) => {
+                                    expect(tag.isValidNode(node));
+                                    expect(node.isDescendantOf(tag));
+                                });
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns empty array', async () => {
+                                const result = await tag.getDescendants(0, {
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.an('array').empty;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without descendants', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                    });
+
+                    describe('Call without params', () => {
+                        it('It returns empty array', async () => {
+                            expect(await tag.getDescendants()).to.be.an('array').empty;
+                        });
+                    });
+                    describe('Call with depth = 1', () => {
+                        it('It returns empty array', async () => {
+                            expect(await tag.getDescendants(1)).to.be.an('array').empty;
+                        });
+                    });
+                    describe('Call with depth = 0 and options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns empty array', async () => {
+                                const result = await tag.getDescendants(0, {
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.an('array').empty;
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns empty array', async () => {
+                                const result = await tag.getDescendants(0, {
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.an('array').empty;
+                            });
+                        });
                     });
                 });
             });
 
-            describe('Try to add the same tag as children of itself without options', () => {
-                it('It throws an exception', async () => {
-                    await tag.addChild(tag).catch((err) => {
-                        expect(() => {throw err}).to.throw();
+            describe('#getParent', () => {
+                describe('For tag with parent', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagWithAncestors(MANY);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns valid parent node', async () => {
+                            const parent = await tag.getParent();
+
+                            expect(tag.isValidNode(parent)).to.be.true;
+                            expect(parent.isAncestorOf(tag)).to.be.true;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns valid parent node', async () => {
+                                const parent = await tag.getParent({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+
+                                expect(tag.isValidNode(parent)).to.be.true;
+                                expect(parent.isAncestorOf(tag)).to.be.true;
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns false', async function () {
+                                if (!currentEnv.parentId) {
+                                    const result = await tag.getParent({
+                                        where: {
+                                            id: tag.id,
+                                        },
+                                    });
+                                    expect(result).to.be.false;
+                                } else {
+                                    this.skip();
+                                }
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without parent (root node)', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await Tag.fetchRoot();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getParent()).to.be.false;
+                        });
+                    });
+                    describe('Call with options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getParent({
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getParent({
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
                     });
                 });
             });
-        });
 
-        describe('For tag without children', () => {
-            let tag;
-            before(async () => {
-                tag = await helpers.getTagWithoutChildren();
+            describe('#getAncestors', () => {
+                describe('For tag with several ancestors', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagWithAncestors(MANY);
+                    });
+
+                    describe('Call without params', () => {
+                        it('It returns all ancestors', async () => {
+                            const ancestors = await tag.getAncestors();
+
+                            currentEnv.level && expect(ancestors.length).to.be.equal(tag.level);
+                            ancestors.forEach((node) => {
+                                expect(tag.isValidNode(node));
+                                expect(node.isAncestorOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with depth = 1', () => {
+                        it('It returns only a parent', async () => {
+                            const ancestors = await tag.getAncestors(1);
+
+                            expect(ancestors.length).to.be.equal(1);
+                            ancestors.forEach((node) => {
+                                currentEnv.level && expect(node.level).to.be.equal(tag.level - 1);
+                                expect(tag.isValidNode(node));
+                                expect(node.isAncestorOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with depth = 0 and options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns valid ancestors', async () => {
+                                const ancestors = await tag.getAncestors(0, {
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+
+                                currentEnv.level && expect(ancestors.length).to.be.equal(tag.level);
+                                ancestors.forEach((node) => {
+                                    expect(tag.isValidNode(node));
+                                    expect(node.isAncestorOf(tag));
+                                });
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns empty array', async () => {
+                                const result = await tag.getAncestors(0, {
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.an('array').empty;
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without ancestors', () => {
+                    let tag;
+                    before(async () => {
+                        const tags = await Tag.fetchRoots();
+                        tag = tags[0];
+                    });
+
+                    describe('Call without params', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getAncestors()).to.be.false;
+                        });
+                    });
+                    describe('Call with depth = 1', () => {
+                        it('It returns false', async () => {
+                            expect(await tag.getAncestors(1)).to.be.false;
+                        });
+                    });
+                    describe('Call with depth = 0 and options', () => {
+                        describe('Add real where clause', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getAncestors(0, {
+                                    where: {
+                                        id: {
+                                            [Op.ne]: tag.id,
+                                        },
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+
+                        describe('Add impossible where clause', () => {
+                            it('It returns false', async () => {
+                                const result = await tag.getAncestors(0, {
+                                    where: {
+                                        id: tag.id,
+                                    },
+                                });
+                                expect(result).to.be.false;
+                            });
+                        });
+                    });
+                });
             });
 
-            describe('Call without options', () => {
-                it('It adds the child', async () => {
-                    const tagValue = 'new child 2';
-                    await tag.addChild(new Tag({
-                        label: tagValue,
+            describe('#addChild', () => {
+                describe('For tag with children', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY);
+                    });
+
+                    describe('Add new tag without options', () => {
+                        it('It adds the child', async () => {
+                            const tagValue = 'new child 1';
+                            await tag.addChild(new Tag({
+                                label: tagValue,
+                            }));
+
+                            const child = await Tag.findOne({
+                                where: {
+                                    label: tagValue,
+                                }
+                            });
+                            await tag.reload();
+
+                            expect(tag.isValidNode(child)).to.be.true;
+                            expect(tag.isAncestorOf(child)).to.be.true;
+                        });
+                    });
+
+                    describe('Try to add existing tag without options', () => {
+                        it('It throws an exception', async () => {
+                            const child = await Tag.findOne({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.id,
+                                    }
+                                }
+                            });
+
+                            // weird way to catch the async exception https://github.com/chaijs/chai/issues/415
+                            await tag.addChild(child).catch((err) => {
+                                expect(() => {throw err}).to.throw();
+                            });
+                        });
+                    });
+
+                    describe('Try to add the same tag as children of itself without options', () => {
+                        it('It throws an exception', async () => {
+                            await tag.addChild(tag).catch((err) => {
+                                expect(() => {throw err}).to.throw();
+                            });
+                        });
+                    });
+                });
+
+                describe('For tag without children', () => {
+                    let tag;
+                    before(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It adds the child', async () => {
+                            const tagValue = 'new child 2';
+                            await tag.addChild(new Tag({
+                                label: tagValue,
+                            }));
+
+                            const child = await Tag.findOne({
+                                where: {
+                                    label: tagValue,
+                                }
+                            });
+                            await tag.reload();
+
+                            expect(tag.isValidNode(child)).to.be.true;
+                            expect(tag.isAncestorOf(child)).to.be.true;
+                        });
+                    });
+                });
+            });
+
+            describe('#isValidNode', () => {
+                describe('Call from instance', () => {
+                    describe('Instance of real existing node', () => {
+                        it('It returns true', async () => {
+                            const node = await Tag.findOne();
+                            expect(node.isValidNode()).to.be.true;
+                        });
+                    });
+                    describe('Instance of non existing node', () => {
+                        it('It returns false', async () => {
+                            const node = new Tag({
+                                label: 'new node',
+                            });
+                            expect(node.isValidNode()).to.be.false;
+                        });
+                    });
+                });
+                describe('Call with node as param', () => {
+                    describe('for real existing node', () => {
+                        it('It returns true', async () => {
+                            const node = await Tag.findOne();
+                            const node2 = await Tag.findOne({
+                                where: {
+                                    id: {
+                                        [Op.ne]: node.id,
+                                    }
+                                }
+                            });
+                            expect(node.isValidNode(node2)).to.be.true;
+                        });
+                    });
+                    describe('for non existing node', () => {
+                        it('It returns false', async () => {
+                            const node = await Tag.findOne();
+                            const node2 = new Tag({
+                                label: 'new node',
+                            });
+                            expect(node.isValidNode(node2)).to.be.false;
+                        });
+                    });
+                });
+            });
+
+            describe('#isLeaf', () => {
+                describe('Call from leaf node', () => {
+                    it('It returns true', async () => {
+                        const node = await helpers.getTagWithoutChildren();
+                        expect(node.isLeaf()).to.be.true;
+                    });
+                });
+                describe('Call from node having children', () => {
+                    it('It returns false', async () => {
+                        const node = await helpers.getTagHavingChildren(MANY);
+                        expect(node.isLeaf()).to.be.false;
+                    });
+                });
+            });
+
+            describe('#isRoot', () => {
+                describe('Call from root node', () => {
+                    it('It returns true', async () => {
+                        const roots = await Tag.fetchRoots();
+                        const node = roots[0];
+                        expect(node.isRoot()).to.be.true;
+                    });
+                });
+                describe('Call from non root node', () => {
+                    it('It returns false', async () => {
+                        const node = await helpers.getTagWithAncestors(MANY);
+                        expect(node.isRoot()).to.be.false;
+                    });
+                });
+            });
+
+            describe('#makeRoot', () => {
+                describe('Call from node with children', () => {
+                    let tag;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY, true);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It moves self and all children to the new tree', async () => {
+                            const rootId = tag.id;
+                            await tag.makeRoot();
+                            const tree = await Tag.fetchTree(0, rootId);
+
+                            expect(tree).to.be.an('array');
+                            expect(tree.length > 2).to.be.true;
+                            tree.forEach((node) => {
+                                expect(node.rootId).to.be.equal(rootId);
+                            });
+                        });
+                    });
+                });
+
+                describe('Call from node without children', () => {
+                    let tag;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It moves self to the new tree', async () => {
+                            const rootId = tag.id;
+                            await tag.makeRoot();
+                            const tree = await Tag.fetchTree(0, rootId);
+
+                            expect(tree).to.be.an('array');
+                            expect(tree.length === 1).to.be.true;
+                            tree.forEach((node) => {
+                                expect(node.rootId).to.be.equal(rootId);
+                            });
+                        });
+                    });
+                });
+
+                describe('Call from root node', () => {
+                    let tag;
+                    beforeEach(async () => {
+                        const tags = await Tag.fetchRoots();
+                        tag = tags[0];
+                    });
+
+                    describe('Call without options', () => {
+                        it('It throws an exception', async () => {
+                            await tag.makeRoot().catch((err) => {
+                                expect(() => {throw err}).to.throw();
+                            });
+                        });
+                    });
+                });
+            });
+
+            describe('#generateAdditionalFields()', () => {
+                it('Result of function is an array of nodes with level', async () => {
+                    const tags = await Tag.fetchRoots();
+                    await Promise.all(tags.map(async (rootTag) => {
+                        const rootId = rootTag.rootId;
+                        const origNodes = await Tag.fetchTree(0, rootId);
+                        const nodes = Tag.generateAdditionalFields(origNodes.map(node => {
+                            node.level = null;
+                            return node;
+                        }));
+
+                        expect(nodes).to.be.an('array');
+                        await Promise.all(nodes.map(async (node) => {
+                            const origNode = await Tag.findByPk(node.id);
+                            const ancestors = await origNode.getAncestors();
+                            expect(node.level).to.be.equal(ancestors ? ancestors.length : 0);
+                        }));
                     }));
+                });
+                it('Result of function is an array of nodes with parentId', async () => {
+                    const tags = await Tag.fetchRoots();
+                    await Promise.all(tags.map(async (rootTag) => {
+                        const rootId = rootTag.rootId;
+                        const origNodes = await Tag.fetchTree(0, rootId);
+                        const nodes = Tag.generateAdditionalFields(origNodes.map(node => {
+                            node.parentId = null;
+                            return node;
+                        }));
 
-                    const child = await Tag.findOne({
-                        where: {
-                            label: tagValue,
-                        }
-                    });
-                    await tag.reload();
-
-                    expect(tag.isValidNode(child)).to.be.true;
-                    expect(tag.isAncestorOf(child)).to.be.true;
+                        expect(nodes).to.be.an('array');
+                        await Promise.all(nodes.map(async tag => {
+                            const parent = await tag.getParent();
+                            expect(tag.parentId).to.be.equal(parseInt(parent ? parent.id : 0));
+                        }));
+                    }));
                 });
             });
-        });
-    });
-
-    describe('#isValidNode', () => {
-        describe('Call from instance', () => {
-            describe('Instance of real existing node', () => {
-                it('It returns true', async () => {
-                    const node = await Tag.findOne();
-                    expect(node.isValidNode()).to.be.true;
-                });
-            });
-            describe('Instance of non existing node', () => {
-                it('It returns false', async () => {
-                    const node = new Tag({
-                        label: 'new node',
-                    });
-                    expect(node.isValidNode()).to.be.false;
-                });
-            });
-        });
-        describe('Call with node as param', () => {
-            describe('for real existing node', () => {
-                it('It returns true', async () => {
-                    const node = await Tag.findOne();
-                    const node2 = await Tag.findOne({
-                        where: {
-                            id: {
-                                [Op.ne]: node.id,
-                            }
-                        }
-                    });
-                    expect(node.isValidNode(node2)).to.be.true;
-                });
-            });
-            describe('for non existing node', () => {
-                it('It returns false', async () => {
-                    const node = await Tag.findOne();
-                    const node2 = new Tag({
-                        label: 'new node',
-                    });
-                    expect(node.isValidNode(node2)).to.be.false;
-                });
-            });
-        });
-    });
-
-    describe('#isLeaf', () => {
-        describe('Call from leaf node', () => {
-            it('It returns true', async () => {
-                const node = await helpers.getTagWithoutChildren();
-                expect(node.isLeaf()).to.be.true;
-            });
-        });
-        describe('Call from node having children', () => {
-            it('It returns false', async () => {
-                const node = await helpers.getTagHavingChildren(MANY);
-                expect(node.isLeaf()).to.be.false;
-            });
-        });
-    });
-
-    describe('#isRoot', () => {
-        describe('Call from root node', () => {
-            it('It returns true', async () => {
-                const roots = await Tag.fetchRoots();
-                const node = roots[0];
-                expect(node.isRoot()).to.be.true;
-            });
-        });
-        describe('Call from non root node', () => {
-            it('It returns false', async () => {
-                const node = await helpers.getTagWithAncestors(MANY);
-                expect(node.isRoot()).to.be.false;
-            });
-        });
-    });
-
-    describe('#makeRoot', () => {
-        describe('Call from node with children', () => {
-            let tag;
-            beforeEach(async () => {
-                tag = await helpers.getTagHavingChildren(MANY, true);
-            });
-
-            describe('Call without options', () => {
-                it('It moves self and all children to the new tree', async () => {
-                    const rootId = tag.id;
-                    await tag.makeRoot();
-                    const tree = await Tag.fetchTree(0, rootId);
-
-                    expect(tree).to.be.an('array');
-                    expect(tree.length > 2).to.be.true;
-                    tree.forEach((node) => {
-                        expect(node.rootId).to.be.equal(rootId);
-                    });
-                });
-            });
-        });
-
-        describe('Call from node without children', () => {
-            let tag;
-            beforeEach(async () => {
-                tag = await helpers.getTagWithoutChildren();
-            });
-
-            describe('Call without options', () => {
-                it('It moves self to the new tree', async () => {
-                    const rootId = tag.id;
-                    await tag.makeRoot();
-                    const tree = await Tag.fetchTree(0, rootId);
-
-                    expect(tree).to.be.an('array');
-                    expect(tree.length === 1).to.be.true;
-                    tree.forEach((node) => {
-                        expect(node.rootId).to.be.equal(rootId);
-                    });
-                });
-            });
-        });
-
-        describe('Call from root node', () => {
-            let tag;
-            beforeEach(async () => {
-                const tags = await Tag.fetchRoots();
-                tag = tags[0];
-            });
-
-            describe('Call without options', () => {
-                it('It throws an exception', async () => {
-                    await tag.makeRoot().catch((err) => {
-                        expect(() => {throw err}).to.throw();
-                    });
-                });
-            });
-        });
-    });
-
-    describe('#generateAdditionalFields()', () => {
-        it('Result of function is an array of nodes with level', async () => {
-            const tags = await Tag.fetchRoots();
-            await Promise.all(tags.map(async (rootTag) => {
-                const rootId = rootTag.rootId;
-                const origNodes = await Tag.fetchTree(0, rootId);
-                const nodes = Tag.generateAdditionalFields(origNodes.map(node => {
-                    node.level = null;
-                    return node;
-                }));
-
-                expect(nodes).to.be.an('array');
-                await Promise.all(nodes.map(async (node) => {
-                    const origNode = await Tag.findByPk(node.id);
-                    expect(node.level).to.be.equal(parseInt(origNode.level));
-                }));
-            }));
-        });
-        it('Result of function is an array of nodes with parentId', async () => {
-            const tags = await Tag.fetchRoots();
-            await Promise.all(tags.map(async (rootTag) => {
-                const rootId = rootTag.rootId;
-                const origNodes = await Tag.fetchTree(0, rootId);
-                const nodes = Tag.generateAdditionalFields(origNodes.map(node => {
-                    node.parentId = null;
-                    return node;
-                }));
-
-                expect(nodes).to.be.an('array');
-                await Promise.all(nodes.map(async tag => {
-                    const parent = await tag.getParent();
-                    expect(tag.parentId).to.be.equal(parseInt(parent ? parent.id : 0));
-                }));
-            }));
         });
     });
 });
