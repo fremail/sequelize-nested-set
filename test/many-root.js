@@ -2045,6 +2045,29 @@ describe('Nested Set with many roots', () => {
                     }));
                 });
             });
+
+            describe('#isEqualTo', () => {
+                describe('Call with same nodes', () => {
+                    it('It returns true', async () => {
+                        const node = await Tag.findOne();
+                        const sameNode = await Tag.findByPk(node.id);
+                        expect(node.isEqualTo(sameNode)).to.be.true;
+                    });
+                });
+                describe('Call with different nodes', () => {
+                    it('It returns false', async () => {
+                        const node = await Tag.findOne();
+                        const anotherNode = await Tag.findOne({
+                            where: {
+                                id: {
+                                    [Op.ne]: node.id,
+                                },
+                            },
+                        });
+                        expect(node.isEqualTo(anotherNode)).to.be.false;
+                    });
+                });
+            });
         });
     });
 });
