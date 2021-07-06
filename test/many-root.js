@@ -1473,6 +1473,32 @@ describe('Nested Set with many roots', () => {
                             });
                         });
                     });
+                    describe('Call with depth = 2', () => {
+                        it('It returns children and grandchildren', async () => {
+                            const newTree = await tag.getDescendants(2);
+                            const levels = helpers.getCountOfNodesPerLevel(newTree);
+                            const keys = Object.keys(levels);
+
+                            expect(keys.length).to.be.equal(2);
+                            newTree.forEach((node) => {
+                                expect(tag.isValidNode(node));
+                                expect(node.isDescendantOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with depth = 100 though there are no such many levels', () => {
+                        it('It returns all possible descendants', async () => {
+                            const newTree = await tag.getDescendants(100);
+                            const levels = helpers.getCountOfNodesPerLevel(newTree);
+                            const keys = Object.keys(levels);
+
+                            expect(keys.length).to.be.gt(0);
+                            newTree.forEach((node) => {
+                                expect(tag.isValidNode(node));
+                                expect(node.isDescendantOf(tag));
+                            });
+                        });
+                    });
                     describe('Call with depth = 0 and options', () => {
                         describe('Add real where clause', () => {
                             it('It returns valid descendants', async () => {
@@ -1663,6 +1689,30 @@ describe('Nested Set with many roots', () => {
                             expect(ancestors.length).to.be.equal(1);
                             ancestors.forEach((node) => {
                                 currentEnv.level && expect(node.level).to.be.equal(tag.level - 1);
+                                expect(tag.isValidNode(node));
+                                expect(node.isAncestorOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with depth = 2', () => {
+                        it('It returns a parent and a grandparent', async () => {
+                            const ancestors = await tag.getAncestors(2);
+
+                            expect(ancestors.length).to.be.equal(2);
+                            ancestors.forEach((node) => {
+                                currentEnv.level && expect(node.level).to.be.lt(tag.level);
+                                expect(tag.isValidNode(node));
+                                expect(node.isAncestorOf(tag));
+                            });
+                        });
+                    });
+                    describe('Call with depth = 100 though there are no such many levels', () => {
+                        it('It returns all possible ancestors', async () => {
+                            const ancestors = await tag.getAncestors(100);
+
+                            expect(ancestors.length).to.be.gt(0);
+                            ancestors.forEach((node) => {
+                                currentEnv.level && expect(node.level).to.be.lt(tag.level);
                                 expect(tag.isValidNode(node));
                                 expect(node.isAncestorOf(tag));
                             });
