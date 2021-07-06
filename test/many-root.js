@@ -2045,6 +2045,127 @@ describe('Nested Set with many roots', () => {
                     }));
                 });
             });
+
+            describe('#isEqualTo', () => {
+                describe('Call with same nodes', () => {
+                    it('It returns true', async () => {
+                        const node = await Tag.findOne();
+                        const sameNode = await Tag.findByPk(node.id);
+                        expect(node.isEqualTo(sameNode)).to.be.true;
+                    });
+                });
+                describe('Call with different nodes', () => {
+                    it('It returns false', async () => {
+                        const node = await Tag.findOne();
+                        const anotherNode = await Tag.findOne({
+                            where: {
+                                id: {
+                                    [Op.ne]: node.id,
+                                },
+                            },
+                        });
+                        expect(node.isEqualTo(anotherNode)).to.be.false;
+                    });
+                });
+            });
+
+            describe('#isDescendantOf', () => {
+                describe('Call with a parent', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        const parent = await tag.getParent();
+                        expect(tag.isDescendantOf(parent)).to.be.true;
+                    });
+                });
+                describe('Call with a grandparent', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        const parents = await tag.getAncestors(2);
+                        expect(tag.isDescendantOf(parents[1])).to.be.true;
+                    });
+                });
+                describe('Call with self', () => {
+                    it('It returns false', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        expect(tag.isDescendantOf(tag)).to.be.false;
+                    });
+                });
+                describe('Call with a child', () => {
+                    it('It returns false', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const children = await tag.getChildren();
+                        children.forEach((child) => {
+                            expect(tag.isDescendantOf(child)).to.be.false;
+                        });
+                    });
+                });
+            });
+
+            describe('#isDescendantOfOrEqualTo', () => {
+                describe('Call with a parent', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        const parent = await tag.getParent();
+                        expect(tag.isDescendantOfOrEqualTo(parent)).to.be.true;
+                    });
+                });
+                describe('Call with a grandparent', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        const parents = await tag.getAncestors(2);
+                        expect(tag.isDescendantOfOrEqualTo(parents[1])).to.be.true;
+                    });
+                });
+                describe('Call with self', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        expect(tag.isDescendantOfOrEqualTo(tag)).to.be.true;
+                    });
+                });
+                describe('Call with a child', () => {
+                    it('It returns false', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const children = await tag.getChildren();
+                        children.forEach((child) => {
+                            expect(tag.isDescendantOfOrEqualTo(child)).to.be.false;
+                        });
+                    });
+                });
+            });
+
+            describe('#isAncestorOf', () => {
+                describe('Call with a child', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const children = await tag.getChildren();
+                        children.forEach((child) => {
+                            expect(tag.isAncestorOf(child)).to.be.true;
+                        });
+                    });
+                });
+                describe('Call with a grandchildren', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const children = await tag.getDescendants(2);
+                        children.forEach((child) => {
+                            expect(tag.isAncestorOf(child)).to.be.true;
+                        });
+                    });
+                });
+                describe('Call with self', () => {
+                    it('It returns false', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        expect(tag.isAncestorOf(tag)).to.be.false;
+                    });
+                });
+                describe('Call with a parent', () => {
+                    it('It returns false', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        const parent = await tag.getParent();
+                        expect(tag.isAncestorOf(parent)).to.be.false;
+                    });
+                });
+            });
         });
     });
 });
