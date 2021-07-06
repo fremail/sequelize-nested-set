@@ -3,10 +3,12 @@ All notable changes to this project (as a library) will be documented in this fi
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Also this project likes fast realizes with even one change to get it live shortly.
+Also, this project likes fast realizes with even one change to get it live shortly.
 
 ## Next release
 New features and bug fixes will be here.
+
+## 1.6.1 - 2021-07-07
 - Fix `getAncestors()` for `depth` greater than 1.
 - Add more tests.
 
