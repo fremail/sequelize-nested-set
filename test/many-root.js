@@ -2068,6 +2068,38 @@ describe('Nested Set with many roots', () => {
                     });
                 });
             });
+
+            describe('#isDescendantOf', () => {
+                describe('Call with a parent', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        const parent = await tag.getParent();
+                        expect(tag.isDescendantOf(parent)).to.be.true;
+                    });
+                });
+                describe('Call with a grandparent', () => {
+                    it('It returns true', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        const parents = await tag.getAncestors(2);
+                        expect(tag.isDescendantOf(parents[1])).to.be.true;
+                    });
+                });
+                describe('Call with self', () => {
+                    it('It returns false', async () => {
+                        const tag = await helpers.getTagWithAncestors(MANY);
+                        expect(tag.isDescendantOf(tag)).to.be.false;
+                    });
+                });
+                describe('Call with a child', () => {
+                    it('It returns false', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const children = await tag.getChildren();
+                        children.forEach((child) => {
+                            expect(tag.isDescendantOf(child)).to.be.false;
+                        });
+                    });
+                });
+            });
         });
     });
 });
