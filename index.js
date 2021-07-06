@@ -407,7 +407,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 };
             } else {
                 options.where.level = {
-                    [Op.between]: [this.level - 1, this.level - depth],
+                    [Op.between]: [this.level - depth, this.level - 1],
                 };
             }
         }
