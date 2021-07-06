@@ -8,6 +8,7 @@ Also this project likes fast realizes with even one change to get it live shortl
 ## Next release
 New features and bug fixes will be here.
 - Fix `getAncestors()` for `depth` greater than 1.
+- Add more tests.
 
 ## 1.6.0 - 2021-07-06
 - Make `level` field optional.
