@@ -9,6 +9,7 @@ Also this project likes fast realizes with even one change to get it live shortl
 New features and bug fixes will be here.
 - Make `level` field optional.
 - Add `parentId` optional field.
+- Add helper tests.
 
 ## 1.5.1 - 2021-01-26
 - Fix insert as sibling methods. [PR #20](https://github.com/fremail/sequelize-nested-set/pull/20) by [@ilgiz-badamshin](https://github.com/ilgiz-badamshin).
