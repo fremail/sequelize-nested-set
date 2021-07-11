@@ -2295,6 +2295,33 @@ describe('Nested Set with many roots', () => {
                     });
                 });
             });
+
+            describe('#detach', () => {
+                describe('Call it', () => {
+                    it(`It makes the node invalid`, async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        tag.detach();
+                        expect(tag.isValidNode()).to.be.false;
+                    });
+                });
+                describe('Call it', () => {
+                    it(`The changes aren't saved`, async () => {
+                        const tag = await helpers.getTagWithoutChildren();
+                        const params = {
+                            id: tag.id,
+                            lft: tag.lft,
+                            rgt: tag.rgt,
+                            rootId: tag.rootId,
+                        };
+                        tag.detach();
+                        const tagFromDB = await Tag.findOne({
+                            where: params,
+                        });
+                        expect(tag.isValidNode()).to.be.false;
+                        expect(tagFromDB.isValidNode()).to.be.true;
+                    });
+                });
+            });
         });
     });
 });
