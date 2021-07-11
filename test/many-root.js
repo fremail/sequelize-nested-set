@@ -2322,6 +2322,47 @@ describe('Nested Set with many roots', () => {
                     });
                 });
             });
+
+            describe('#delete', () => {
+                describe('Call it', () => {
+                    it(`It deletes the node from DB`, async () => {
+                        const tag = await helpers.getTagWithoutChildren();
+                        const params = {
+                            id: tag.id,
+                        };
+                        await tag.delete();
+                        const tagFromDB = await Tag.findOne({
+                            where: params,
+                        });
+                        expect(tagFromDB).to.be.null;
+                    });
+                });
+                describe('For node with siblings', () => {
+                    it('It shifts next siblings lft and rgt values', async () => {
+                        const tag = await helpers.getTagHavingSiblings(FIRST);
+                        const siblings = await tag.getSiblings();
+                        const myLft = tag.lft;
+                        await tag.delete();
+                        let hasTagWithMyLft = false;
+                        await Promise.all(siblings.map(async (node) => {
+                            await node.reload();
+                            hasTagWithMyLft = hasTagWithMyLft || parseInt(node.lft) === parseInt(myLft);
+                        }));
+                        expect(hasTagWithMyLft).to.be.true;
+                    });
+                });
+                describe('For node with children', () => {
+                    it('It deletes all descendants too', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const descendants = await tag.getDescendants();
+                        await tag.delete();
+                        await Promise.all(descendants.map(async (node) => {
+                            const nodeFromDB = await Tag.findByPk(node.id);
+                            expect(nodeFromDB).to.be.null;
+                        }));
+                    });
+                });
+            });
         });
     });
 });
