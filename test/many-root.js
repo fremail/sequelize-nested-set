@@ -2166,6 +2166,116 @@ describe('Nested Set with many roots', () => {
                     });
                 });
             });
+
+            describe('#getNumberChildren', () => {
+                describe('For node with a child', () => {
+                    let tag;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagHavingChildren(ONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns 1', async () => {
+                            const number = await tag.getNumberChildren();
+                            expect(number).to.be.equal(1);
+                        });
+                    });
+                    describe('Call with real where clause', () => {
+                        it('It returns 1', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.id,
+                                    },
+                                },
+                            });
+                            expect(number).to.be.equal(1);
+                        });
+                    });
+                    describe('Call with impossible where clause', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: tag.id,
+                                },
+                            });
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                });
+                describe('For node with many children', () => {
+                    let tag, childrenCount;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY);
+                        const children = await tag.getChildren();
+                        childrenCount = children.length;
+                    });
+
+                    describe('Call without options', () => {
+                        it(`It returns ${childrenCount}`, async () => {
+                            const number = await tag.getNumberChildren();
+                            expect(number).to.be.equal(childrenCount);
+                        });
+                    });
+                    describe('Call with real where clause', () => {
+                        it(`It returns ${childrenCount}`, async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.id,
+                                    },
+                                },
+                            });
+                            expect(number).to.be.equal(childrenCount);
+                        });
+                    });
+                    describe('Call with impossible where clause', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: tag.id,
+                                },
+                            });
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                });
+                describe('For node without children', () => {
+                    let tag;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren();
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                    describe('Call with real where clause', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.id,
+                                    },
+                                },
+                            });
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                    describe('Call with impossible where clause', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: tag.id,
+                                },
+                            });
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                });
+            });
         });
     });
 });
