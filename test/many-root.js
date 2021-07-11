@@ -2276,6 +2276,25 @@ describe('Nested Set with many roots', () => {
                     });
                 });
             });
+
+            describe('#getNumberDescendants', () => {
+                describe('Call it for node with many children', () => {
+                    it(`It returns a correct number of all their descendants`, async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const descendants = await tag.getDescendants();
+                        const count = descendants.length;
+                        const number = await tag.getNumberDescendants();
+                        expect(number).to.be.equal(count);
+                    });
+                });
+                describe('Call it for node without children', () => {
+                    it(`It returns 0`, async () => {
+                        const tag = await helpers.getTagWithoutChildren();
+                        const number = await tag.getNumberDescendants();
+                        expect(number).to.be.equal(0);
+                    });
+                });
+            });
         });
     });
 });
