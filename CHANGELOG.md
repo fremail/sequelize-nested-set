@@ -7,6 +7,8 @@ Also, this project likes fast realizes with even one change to get it live short
 
 ## Next release
 New features and bug fixes will be here.
+
+## 1.6.2 - 2021-07-24
 - Fix `updateNode()`: don't increment level if no level column.
 - Allow `level` to be `null` if it's virtual.
 - Add more tests.

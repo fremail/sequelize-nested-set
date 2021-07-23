@@ -1,6 +1,6 @@
 {
   "name": "sequelize-nested-set",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Library to store and manage nested set trees using Sequelize",
   "main": "index.js",
   "engines": {
