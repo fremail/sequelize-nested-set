@@ -2363,6 +2363,172 @@ describe('Nested Set with many roots', () => {
                     });
                 });
             });
+
+            describe('#moveAsNextSiblingOf', () => {
+                describe('For node without children', () => {
+                    let tag, origData;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                        origData = {
+                            lft: tag.lft,
+                            rgt: tag.rgt,
+                            rootId: tag.rootId,
+                        };
+                    });
+                    describe('Try to move it to another tree', () => {
+                        it('It moves the node to the destination', async () => {
+                            const roots = await Tag.fetchRoots({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.rootId,
+                                    },
+                                },
+                            });
+                            const destRootId = roots[0].rootId;
+                            const dest = await Tag.findOne({
+                                where: {
+                                    rootId: destRootId,
+                                    lft: {
+                                        [Op.gt]: 1,
+                                    },
+                                },
+                            });
+                            await tag.moveAsNextSiblingOf(dest);
+
+                            expect(origData.rootId).to.be.not.eq(tag.rootId);
+                            const parent1 = await tag.getParent();
+                            const parent2 = await dest.getParent();
+                            expect(parent1.isEqualTo(parent2)).to.be.true;
+                            expect(tag.lft - 1).to.be.eq(dest.rgt);
+                            const oldNeighbor = await Tag.findOne({
+                                where: {
+                                    lft: origData.lft,
+                                },
+                            });
+                            expect(tag.isValidNode(oldNeighbor)).to.be.true;
+                        });
+                    });
+                    describe('Try to move it inside the tree', () => {
+                        it('It moves the node to the destination', async () => {
+                            const dest = await Tag.findOne({
+                                where: {
+                                    id: {
+                                        [Op.notIn]: [tag.id, tag.rootId],
+                                    },
+                                    rootId: tag.rootId,
+                                    lft: {
+                                        [Op.notBetween]: [tag.lft, tag.rgt],
+                                    },
+                                },
+                            });
+                            await tag.moveAsNextSiblingOf(dest);
+
+                            expect(origData.rootId).to.be.eq(tag.rootId);
+                            const parent1 = await tag.getParent();
+                            const parent2 = await dest.getParent();
+                            expect(parent1.isEqualTo(parent2)).to.be.true;
+                            expect(tag.lft - 1).to.be.eq(dest.rgt);
+                        });
+                    });
+                    describe('Try to move it to self', () => {
+                        it('It throws an exception', async () => {
+                            const dest = await Tag.findByPk(tag.id);
+                            await tag.moveAsNextSiblingOf(dest).catch((err) => {
+                                expect(() => {throw err}).to.throw();
+                            });
+                        });
+                    });
+                });
+                describe('For node with children', () => {
+                    let tag, origData;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY, true);
+                        const descendants = await tag.getDescendants();
+                        origData = {
+                            lft: tag.lft,
+                            rgt: tag.rgt,
+                            rootId: tag.rootId,
+                            descendantIds: descendants.map((node) => node.id),
+                        };
+                    });
+                    describe('Try to move it to another tree', () => {
+                        it('It moves the node with descendents to the destination', async () => {
+                            const roots = await Tag.fetchRoots({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.rootId,
+                                    },
+                                },
+                            });
+                            const destRootId = roots[0].rootId;
+                            const dest = await Tag.findOne({
+                                where: {
+                                    rootId: destRootId,
+                                    lft: {
+                                        [Op.gt]: 1,
+                                    },
+                                },
+                            });
+                            await tag.moveAsNextSiblingOf(dest);
+
+                            expect(origData.rootId).to.be.not.eq(tag.rootId);
+                            const parent1 = await tag.getParent();
+                            const parent2 = await dest.getParent();
+                            expect(parent1.isEqualTo(parent2)).to.be.true;
+                            expect(tag.lft - 1).to.be.eq(dest.rgt);
+
+                            const descendants = await tag.getDescendants();
+                            expect(descendants.length).to.be.eq(origData.descendantIds.length);
+                            descendants.forEach((descendant) => {
+                                expect(origData.descendantIds.includes(descendant.id)).to.be.true;
+                            });
+
+                            const oldNeighbor = await Tag.findOne({
+                                where: {
+                                    lft: origData.lft,
+                                },
+                            });
+                            expect(tag.isValidNode(oldNeighbor)).to.be.true;
+                        });
+                    });
+                    describe('Try to move it inside the tree', () => {
+                        it('It moves the node to the destination', async () => {
+                            const dest = await Tag.findOne({
+                                where: {
+                                    id: {
+                                        [Op.notIn]: [tag.id, tag.rootId],
+                                    },
+                                    rootId: tag.rootId,
+                                    lft: {
+                                        [Op.notBetween]: [tag.lft, tag.rgt],
+                                    },
+                                },
+                            });
+                            await tag.moveAsNextSiblingOf(dest);
+
+                            expect(origData.rootId).to.be.eq(tag.rootId);
+                            const parent1 = await tag.getParent();
+                            const parent2 = await dest.getParent();
+                            expect(parent1.isEqualTo(parent2)).to.be.true;
+                            expect(tag.lft - 1).to.be.eq(dest.rgt);
+
+                            const descendants = await tag.getDescendants();
+                            expect(descendants.length).to.be.eq(origData.descendantIds.length);
+                            descendants.forEach((descendant) => {
+                                expect(origData.descendantIds.includes(descendant.id)).to.be.true;
+                            });
+                        });
+                    });
+                    describe('Try to move it to self', () => {
+                        it('It throws an exception', async () => {
+                            const dest = await Tag.findByPk(tag.id);
+                            await tag.moveAsNextSiblingOf(dest).catch((err) => {
+                                expect(() => {throw err}).to.throw();
+                            });
+                        });
+                    });
+                });
+            });
         });
     });
 });
