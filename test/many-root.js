@@ -2166,6 +2166,369 @@ describe('Nested Set with many roots', () => {
                     });
                 });
             });
+
+            describe('#getNumberChildren', () => {
+                describe('For node with a child', () => {
+                    let tag;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagHavingChildren(ONE);
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns 1', async () => {
+                            const number = await tag.getNumberChildren();
+                            expect(number).to.be.equal(1);
+                        });
+                    });
+                    describe('Call with real where clause', () => {
+                        it('It returns 1', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.id,
+                                    },
+                                },
+                            });
+                            expect(number).to.be.equal(1);
+                        });
+                    });
+                    describe('Call with impossible where clause', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: tag.id,
+                                },
+                            });
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                });
+                describe('For node with many children', () => {
+                    let tag, childrenCount;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY);
+                        const children = await tag.getChildren();
+                        childrenCount = children.length;
+                    });
+
+                    describe('Call without options', () => {
+                        it(`It returns ${childrenCount}`, async () => {
+                            const number = await tag.getNumberChildren();
+                            expect(number).to.be.equal(childrenCount);
+                        });
+                    });
+                    describe('Call with real where clause', () => {
+                        it(`It returns ${childrenCount}`, async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.id,
+                                    },
+                                },
+                            });
+                            expect(number).to.be.equal(childrenCount);
+                        });
+                    });
+                    describe('Call with impossible where clause', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: tag.id,
+                                },
+                            });
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                });
+                describe('For node without children', () => {
+                    let tag;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                    });
+
+                    describe('Call without options', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren();
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                    describe('Call with real where clause', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.id,
+                                    },
+                                },
+                            });
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                    describe('Call with impossible where clause', () => {
+                        it('It returns 0', async () => {
+                            const number = await tag.getNumberChildren({
+                                where: {
+                                    id: tag.id,
+                                },
+                            });
+                            expect(number).to.be.equal(0);
+                        });
+                    });
+                });
+            });
+
+            describe('#getNumberDescendants', () => {
+                describe('Call it for node with many children', () => {
+                    it(`It returns a correct number of all their descendants`, async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const descendants = await tag.getDescendants();
+                        const count = descendants.length;
+                        const number = await tag.getNumberDescendants();
+                        expect(number).to.be.equal(count);
+                    });
+                });
+                describe('Call it for node without children', () => {
+                    it(`It returns 0`, async () => {
+                        const tag = await helpers.getTagWithoutChildren();
+                        const number = await tag.getNumberDescendants();
+                        expect(number).to.be.equal(0);
+                    });
+                });
+            });
+
+            describe('#detach', () => {
+                describe('Call it', () => {
+                    it(`It makes the node invalid`, async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        tag.detach();
+                        expect(tag.isValidNode()).to.be.false;
+                    });
+                });
+                describe('Call it', () => {
+                    it(`The changes aren't saved`, async () => {
+                        const tag = await helpers.getTagWithoutChildren();
+                        const params = {
+                            id: tag.id,
+                            lft: tag.lft,
+                            rgt: tag.rgt,
+                            rootId: tag.rootId,
+                        };
+                        tag.detach();
+                        const tagFromDB = await Tag.findOne({
+                            where: params,
+                        });
+                        expect(tag.isValidNode()).to.be.false;
+                        expect(tagFromDB.isValidNode()).to.be.true;
+                    });
+                });
+            });
+
+            describe('#delete', () => {
+                describe('Call it', () => {
+                    it(`It deletes the node from DB`, async () => {
+                        const tag = await helpers.getTagWithoutChildren();
+                        const params = {
+                            id: tag.id,
+                        };
+                        await tag.delete();
+                        const tagFromDB = await Tag.findOne({
+                            where: params,
+                        });
+                        expect(tagFromDB).to.be.null;
+                    });
+                });
+                describe('For node with siblings', () => {
+                    it('It shifts next siblings lft and rgt values', async () => {
+                        const tag = await helpers.getTagHavingSiblings(FIRST);
+                        const siblings = await tag.getSiblings();
+                        const myLft = tag.lft;
+                        await tag.delete();
+                        let hasTagWithMyLft = false;
+                        await Promise.all(siblings.map(async (node) => {
+                            await node.reload();
+                            hasTagWithMyLft = hasTagWithMyLft || parseInt(node.lft) === parseInt(myLft);
+                        }));
+                        expect(hasTagWithMyLft).to.be.true;
+                    });
+                });
+                describe('For node with children', () => {
+                    it('It deletes all descendants too', async () => {
+                        const tag = await helpers.getTagHavingChildren(MANY);
+                        const descendants = await tag.getDescendants();
+                        await tag.delete();
+                        await Promise.all(descendants.map(async (node) => {
+                            const nodeFromDB = await Tag.findByPk(node.id);
+                            expect(nodeFromDB).to.be.null;
+                        }));
+                    });
+                });
+            });
+
+            describe('#moveAsNextSiblingOf', () => {
+                describe('For node without children', () => {
+                    let tag, origData;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagWithoutChildren();
+                        origData = {
+                            lft: tag.lft,
+                            rgt: tag.rgt,
+                            rootId: tag.rootId,
+                        };
+                    });
+                    describe('Try to move it to another tree', () => {
+                        it('It moves the node to the destination', async () => {
+                            const roots = await Tag.fetchRoots({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.rootId,
+                                    },
+                                },
+                            });
+                            const destRootId = roots[0].rootId;
+                            const dest = await Tag.findOne({
+                                where: {
+                                    rootId: destRootId,
+                                    lft: {
+                                        [Op.gt]: 1,
+                                    },
+                                },
+                            });
+                            await tag.moveAsNextSiblingOf(dest);
+
+                            expect(origData.rootId).to.be.not.eq(tag.rootId);
+                            const parent1 = await tag.getParent();
+                            const parent2 = await dest.getParent();
+                            expect(parent1.isEqualTo(parent2)).to.be.true;
+                            expect(tag.lft - 1).to.be.eq(dest.rgt);
+                            const oldNeighbor = await Tag.findOne({
+                                where: {
+                                    lft: origData.lft,
+                                },
+                            });
+                            expect(tag.isValidNode(oldNeighbor)).to.be.true;
+                        });
+                    });
+                    describe('Try to move it inside the tree', () => {
+                        it('It moves the node to the destination', async () => {
+                            const dest = await Tag.findOne({
+                                where: {
+                                    id: {
+                                        [Op.notIn]: [tag.id, tag.rootId],
+                                    },
+                                    rootId: tag.rootId,
+                                    lft: {
+                                        [Op.notBetween]: [tag.lft, tag.rgt],
+                                    },
+                                },
+                            });
+                            await tag.moveAsNextSiblingOf(dest);
+
+                            expect(origData.rootId).to.be.eq(tag.rootId);
+                            const parent1 = await tag.getParent();
+                            const parent2 = await dest.getParent();
+                            expect(parent1.isEqualTo(parent2)).to.be.true;
+                            expect(tag.lft - 1).to.be.eq(dest.rgt);
+                        });
+                    });
+                    describe('Try to move it to self', () => {
+                        it('It throws an exception', async () => {
+                            const dest = await Tag.findByPk(tag.id);
+                            await tag.moveAsNextSiblingOf(dest).catch((err) => {
+                                expect(() => {throw err}).to.throw();
+                            });
+                        });
+                    });
+                });
+                describe('For node with children', () => {
+                    let tag, origData;
+                    beforeEach(async () => {
+                        tag = await helpers.getTagHavingChildren(MANY, true);
+                        const descendants = await tag.getDescendants();
+                        origData = {
+                            lft: tag.lft,
+                            rgt: tag.rgt,
+                            rootId: tag.rootId,
+                            descendantIds: descendants.map((node) => node.id),
+                        };
+                    });
+                    describe('Try to move it to another tree', () => {
+                        it('It moves the node with descendents to the destination', async () => {
+                            const roots = await Tag.fetchRoots({
+                                where: {
+                                    id: {
+                                        [Op.ne]: tag.rootId,
+                                    },
+                                },
+                            });
+                            const destRootId = roots[0].rootId;
+                            const dest = await Tag.findOne({
+                                where: {
+                                    rootId: destRootId,
+                                    lft: {
+                                        [Op.gt]: 1,
+                                    },
+                                },
+                            });
+                            await tag.moveAsNextSiblingOf(dest);
+
+                            expect(origData.rootId).to.be.not.eq(tag.rootId);
+                            const parent1 = await tag.getParent();
+                            const parent2 = await dest.getParent();
+                            expect(parent1.isEqualTo(parent2)).to.be.true;
+                            expect(tag.lft - 1).to.be.eq(dest.rgt);
+
+                            const descendants = await tag.getDescendants();
+                            expect(descendants.length).to.be.eq(origData.descendantIds.length);
+                            descendants.forEach((descendant) => {
+                                expect(origData.descendantIds.includes(descendant.id)).to.be.true;
+                            });
+
+                            const oldNeighbor = await Tag.findOne({
+                                where: {
+                                    lft: origData.lft,
+                                },
+                            });
+                            expect(tag.isValidNode(oldNeighbor)).to.be.true;
+                        });
+                    });
+                    describe('Try to move it inside the tree', () => {
+                        it('It moves the node to the destination', async () => {
+                            const dest = await Tag.findOne({
+                                where: {
+                                    id: {
+                                        [Op.notIn]: [tag.id, tag.rootId],
+                                    },
+                                    rootId: tag.rootId,
+                                    lft: {
+                                        [Op.notBetween]: [tag.lft, tag.rgt],
+                                    },
+                                },
+                            });
+                            await tag.moveAsNextSiblingOf(dest);
+
+                            expect(origData.rootId).to.be.eq(tag.rootId);
+                            const parent1 = await tag.getParent();
+                            const parent2 = await dest.getParent();
+                            expect(parent1.isEqualTo(parent2)).to.be.true;
+                            expect(tag.lft - 1).to.be.eq(dest.rgt);
+
+                            const descendants = await tag.getDescendants();
+                            expect(descendants.length).to.be.eq(origData.descendantIds.length);
+                            descendants.forEach((descendant) => {
+                                expect(origData.descendantIds.includes(descendant.id)).to.be.true;
+                            });
+                        });
+                    });
+                    describe('Try to move it to self', () => {
+                        it('It throws an exception', async () => {
+                            const dest = await Tag.findByPk(tag.id);
+                            await tag.moveAsNextSiblingOf(dest).catch((err) => {
+                                expect(() => {throw err}).to.throw();
+                            });
+                        });
+                    });
+                });
+            });
         });
     });
 });
