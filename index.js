@@ -38,7 +38,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
         level: {
             type: nsOptions.levelColumnName ? DataTypes.INTEGER : DataTypes.VIRTUAL,
             field: nsOptions.levelColumnName || undefined,
-            allowNull: false,
+            allowNull: !nsOptions.levelColumnName,
         },
         parentId: {
             type: nsOptions.parentIdColumnName && nsOptions.parentIdColumnType ? nsOptions.parentIdColumnType : DataTypes.VIRTUAL,
