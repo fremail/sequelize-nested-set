@@ -1077,7 +1077,7 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
                 [Op.lt]: right,
             };
             incOptions.where.rootId = rootId;
-            await Model.increment('level', incOptions);
+            nsOptions.levelColumnName && await Model.increment('level', incOptions);
 
             await this.shiftRlRange(left, right, destLeft - left, rootId, options);
 

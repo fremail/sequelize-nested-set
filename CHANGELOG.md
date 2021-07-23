@@ -7,6 +7,7 @@ Also, this project likes fast realizes with even one change to get it live short
 
 ## Next release
 New features and bug fixes will be here.
+- Fix `updateNode()`: don't increment level if no level column.
 
 ## 1.6.1 - 2021-07-07
 - Fix `getAncestors()` for `depth` greater than 1.
