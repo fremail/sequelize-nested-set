@@ -39,21 +39,57 @@ Please note, you have to install [Sequelize](https://github.com/sequelize/sequel
 This library works as a wrapper for `sequelize.define`, it has the same params: model name, attributes (aka table fields), options, but the first 2 params are sequelize connection and DataTypes object.
 
 ```javascript
+const { Sequelize, DataTypes, BulkRecordError } = require('sequelize');
 const ns = require('sequelize-nested-set');
 
-module.exports = (sequelize, DataTypes) => {
-    const Tag = ns(sequelize, DataTypes, 'Tag', {
-        label: DataTypes.STRING,
-    }, {
-        tableName: 'tag',
-        timestamps: false,
-        hasManyRoots: true,
+// Setup database connection.
+const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: 'treeorg.sqlite'
+});
+
+// Define Tree model.
+const Tree = ns(sequelize
+                , DataTypes
+                , 'Tree'
+                , { label: DataTypes.STRING }
+                , { //tableName: 'Tree'
+                    timestamps: false
+                    , hasManyRoots: true
+                    , levelColumnName: 'level'
+                }
+);
+
+// Create Tree model:
+//  Electronics
+//      Phones
+//          Xiaomi
+//      TVs
+sequelize.sync()
+    .then(() => {
+
+        (async () => {
+
+            let electronics = new Tree(); electronics.label = 'Electronics';
+            electronics = await Tree.createRoot(electronics);
+            await electronics.reload();
+
+                let phones = new Tree(); phones.label = 'Phones';
+                await electronics.addChild(phones);
+                await electronics.reload();
+
+                    let xiaomi = new Tree(); xiaomi.label = 'Xiaomi';
+                    await phones.addChild(xiaomi);
+                    await phones.reload();
+
+                let TVs = new Tree(); TVs.label = 'TVs';
+                await electronics.addChild(TVs);
+                await electronics.reload();
+
+        })();
+
     });
-    
-    // add additional methods, associations to the model
-    
-    return Tag;
-};
+
 ```
 
 ## DB Table structure
