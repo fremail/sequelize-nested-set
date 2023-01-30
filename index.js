@@ -53,7 +53,19 @@ module.exports = function (sequelize, DataTypes, modelName, attributes = {}, opt
             allowNull: false,
         };
     }
-    attributes = {...baseAttributes, ...attributes};
+    
+    if (options.nsAfterField && Object.keys(attributes).includes(options.nsAfterField)) {
+        const reorderedAttributes = {};
+        Object.entries(attributes).forEach(entry => {
+            reorderedAttributes[entry[0]] = entry[1];
+            if (entry[0] === options.nsAfterField) {
+                reorderedAttributes = { ...reorderedAttributes, ...baseAttributes };
+            }
+        });
+        attributes = reorderedAttributes;
+    } else {
+        attributes = {...baseAttributes, ...attributes};
+    }
 
     const Model = sequelize.define(modelName, attributes, options);
 
